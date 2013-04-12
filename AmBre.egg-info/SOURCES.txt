@@ -1,0 +1,9 @@
+setup.cfg
+setup.py
+AmBre.egg-info/PKG-INFO
+AmBre.egg-info/SOURCES.txt
+AmBre.egg-info/dependency_links.txt
+AmBre.egg-info/entry_points.txt
+AmBre.egg-info/top_level.txt
+AmBre.egg-info/zip-safe
+ambre/__init__.py

@@ -558,8 +558,8 @@ def ambre_run(regions_fpath, temp_tag=None):
     w.validate()
   except:
     pass
- 
-if __name__=='__main__':
+
+def main(): 
   import sys
   import argparse
   
@@ -585,4 +585,7 @@ if __name__=='__main__':
     args.check_align(args.regions[0], args.temptag)
   else:
     ambre_run(args.regions[0], args.temptag)
-      
+
+if __name__=='__main__':
+  main()
+

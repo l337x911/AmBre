@@ -76,7 +76,7 @@ def ambre_run(reference_fpath, contig, sam_fpath, temp_tag=None):
   w = BreakpointAnalyzeWorkflow(reference_fpath, contig)
   w.run(sam_fpath, temp_tag=temp_tag, delete_flag=(CONFIG.param['cleanup_flag']=="True"))
 
-if __name__=='__main__':
+def main():
   import argparse
   
   parser = argparse.ArgumentParser(description='Analyzes local alignments on sequencing fragments to call breakpoints and form template sequences.')
@@ -88,4 +88,6 @@ if __name__=='__main__':
    
   args = parser.parse_args()
   ambre_run(args.reference[0], args.contig[0], args.alignments[0], args.temptag)
-      
+if __name__=='__main__':
+  main()
+

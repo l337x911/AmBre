@@ -1,13 +1,26 @@
 '''
-Created on Feb 23, 2012
-
-@author: anand
+#  ambre.design.workflow.py
+#
+#  Copyright March 2013 by Anand D. Patel
+#
+#  This program is free software; you may redistribute it and/or modify its
+#  under the terms of the GNU General Public License as published by the Free
+#  Software Foundation; either version 2 of the License or
+#  any later version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+#  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#  for more details.
+#
+#  For any other inquiries send an email to: Anand D. Patel (adp002@ucsd.edu)
 '''
 from ambre.config import CONFIG
 
 from subprocess import Popen, PIPE
 from collections import namedtuple, defaultdict
 import os
+import sys
 import numpy as na
 import shlex
 from operator import attrgetter

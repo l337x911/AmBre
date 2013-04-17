@@ -1,5 +1,22 @@
-from collections import defaultdict
+'''
+#  ambre.design.parse_primer3.py
+#
+#  Copyright March 2013 by Anand D. Patel
+#
+#  This program is free software; you may redistribute it and/or modify its
+#  under the terms of the GNU General Public License as published by the Free
+#  Software Foundation; either version 2 of the License or
+#  any later version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+#  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#  for more details.
+#
+#  For any other inquiries send an email to: Anand D. Patel (adp002@ucsd.edu)
+'''
 
+from collections import defaultdict
 
 def parse_info(r):
   primer_idx_pos = r.find('_')

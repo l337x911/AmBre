@@ -1,7 +1,19 @@
 '''
-Created on Jan 10, 2012
-
-@author: Anand
+#  ambre.test.reference.py
+#
+#  Copyright March 2013 by Anand D. Patel
+#
+#  This program is free software; you may redistribute it and/or modify its
+#  under the terms of the GNU General Public License as published by the Free
+#  Software Foundation; either version 2 of the License or
+#  any later version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+#  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#  for more details.
+#
+#  For any other inquiries send an email to: Anand D. Patel (adp002@ucsd.edu)
 '''
 import os
 import string

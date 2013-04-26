@@ -1,43 +1,42 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Ambre by l337x911</title>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="AmBre : Amplification of breakpoints for reliable genome structural variation detection." />
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>AmBre</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1 class="header">Ambre</h1>
-        <p class="header">Amplification of breakpoints for reliable genome structural variation detection.</p>
 
-        <ul>
-          <li class="download"><a class="buttons" href="https://github.com/l337x911/AmBre/raw/master/dist/AmBre-1.0release-py2.7.egg">Download EGG</a></li>
-          <li class="download"><a class="buttons" href="https://github.com/l337x911/AmBre/raw/master/dist/AmBre-1.0release.zip">Download ZIP</a></li>
-          <li class="download"><a class="buttons" href="https://github.com/l337x911/AmBre/raw/master/dist/AmBre-1.0release.tar.gz">Download TAR</a></li>
-          <li><a class="buttons github" href="https://github.com/l337x911/AmBre">View On GitHub</a></li>
-        </ul>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/l337x911/AmBre">View on GitHub</a>
 
-        <p class="header">This project is maintained by <a class="header name" href="https://github.com/l337x911">l337x911</a></p>
+          <h1 id="project_title">AmBre</h1>
+          <h2 id="project_tagline">Amplification of breakpoints for reliable genome structural variation detection.</h2>
 
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/l337x911/AmBre/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/l337x911/AmBre/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
 
-      </header>
-      <section>
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h1></h1>
 
 <h1>AmBre: Primer designing and sequence analysis for amplifying breakpoints.</h1>
 
-<p>Developed by Anand D. Patel in Vineet Bafna's lab at University of California, San Diego</p>
-
-<p>patel [dot] anandd [at] gmail [dot] com</p>
+<p>Developed by Anand D. Patel in Vineet Bafna's lab at University of California, San Diego
+patel [dot] anandd [at] gmail [dot] com</p>
 
 <p>AmBre is composed of two computational parts. A) Primer Designing
 B) Long read sequence analysis.::</p>
@@ -67,10 +66,9 @@ python ambre_analyze.py &lt;reference.fasta&gt; &lt;contig&gt; &lt;mapped_reads.
 </li>
 </ul><h2>Installing AmBre</h2>
 
-<p>We recommend downloading the EGG and installing in terminal
- using python EasyInstall (part of setuptools). ::</p>
+<p>Download the tar or zip ball and install using the setup.py script. ::</p>
 
-<pre><code>easy_install AmBre-1release-py2.7.egg
+<pre><code>python setup.py install
 </code></pre>
 
 <p>To configure the above binary dependencies, edit "ambre.conf" file. The config file
@@ -286,11 +284,17 @@ analyze_max_d_p=100
 analyze_default_segment_p=6500
 </code></pre>
       </section>
-      <footer>
-        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">AmBre maintained by <a href="https://github.com/l337x911">l337x911</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-		
+
+    
+
   </body>
 </html>

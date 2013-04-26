@@ -35,10 +35,9 @@ Sequence analysis using PacBio requires BLASR and SMRT pipe.
 Installing AmBre
 -------------
 
-We recommend downloading the EGG and installing in terminal
- using python EasyInstall (part of setuptools). ::
+Download the tar or zip ball and install using the setup.py script. ::
 	
-	easy_install AmBre-1release-py2.7.egg
+	python setup.py install
 
 To configure the above binary dependencies, edit "ambre.conf" file. The config file
 is located with ::

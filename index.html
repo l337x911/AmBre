@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Ambre by l337x911</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Ambre</h1>
+        <p class="header">Amplification of breakpoints for reliable genome structural variation detection.</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/l337x911/AmBre/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/l337x911/AmBre/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/l337x911/AmBre">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/l337x911">l337x911</a></p>
+
+
+      </header>
+      <section>
+        <h1></h1>
+
+<h1>AmBre: Primer designing and sequence analysis for amplifying breakpoints.</h1>
+
+<p>Developed by Anand D. Patel in Vineet Bafna's lab at University of California, San Diego
+patel [dot] anandd [at] gmail [dot] com</p>
+
+<p>AmBre is composed of two computational parts. A) Primer Designing
+B) Long read sequence analysis.::</p>
+
+<pre><code>python ambre_design.py &lt;reference.fasta&gt; &lt;regions.txt&gt; [&lt;temptag&gt;]
+python ambre_analyze.py &lt;reference.fasta&gt; &lt;contig&gt; &lt;mapped_reads.sam&gt; [&lt;temptag&gt;]
+</code></pre>
+
+<h1>Installing</h1>
+
+<h2>Software Requirements</h2>
+
+<p>AmBre requires Python 2.7.x and numpy</p>
+
+<p>For primer designing, the following software needs to be installed</p>
+
+<ul>
+<li><p>Primer3 Version 2.3.0 <a href="http://sourceforge.net/projects/primer3/">http://sourceforge.net/projects/primer3/</a></p></li>
+<li><p>Blat Version 34x12 <a href="http://hgdownload.cse.ucsc.edu/admin/exe/">http://hgdownload.cse.ucsc.edu/admin/exe/</a></p></li>
+<li><p>Multiplx Version 1.2 <a href="http://bioinfo.ut.ee/?page_id=167">http://bioinfo.ut.ee/?page_id=167</a></p></li>
+</ul><p>Sequence analysis using PacBio requires BLASR and SMRT pipe.</p>
+
+<ul>
+<li>BLASR <a href="https://github.com/PacificBiosciences/blasr">https://github.com/PacificBiosciences/blasr</a>
+</li>
+<li>PacBio SMRT-Analysis <a href="https://github.com/PacificBiosciences/SMRT-Analysis">https://github.com/PacificBiosciences/SMRT-Analysis</a>
+</li>
+</ul><h2>Installing AmBre</h2>
+
+<p>We recommend downloading the EGG and installing in terminal
+ using python EasyInstall (part of setuptools). ::</p>
+
+<pre><code>easy_install AmBre-1release-py2.7.egg
+</code></pre>
+
+<p>To configure the above binary dependencies, edit "ambre.conf" file. The config file
+is located with ::</p>
+
+<pre><code>python ambre_test.py -c
+</code></pre>
+
+<p>Edit the file paths primer3_dir, aligner_bin, and multiplx to point to the correct
+dependency folder (primer3) or binary (blat and multiplx). In the config
+file specify number of threads and a temp directory to store intermediate files.
+ Note, user-specific  config files can be used by running any module with the --config argument. </p>
+
+<p>To verify the installation/configuration is correct and
+ run a small test case for AmBre-design and AmBre-analyze (takes ~5min). ::</p>
+
+<pre><code>python ambre_test.py
+</code></pre>
+
+<p>If all is well, continue to usage.</p>
+
+<h1>Usage</h1>
+
+<p>AmBre-design and AmBre-analyze are fairly independent.</p>
+
+<p>For AmBre-design see <a href="USEAGE-DESIGN.md">design usage</a> for details.
+For AmBre-analyze see <a href="USEAGE-ANALYZE.md">analyze usage</a> for details.</p>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>

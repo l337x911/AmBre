@@ -104,11 +104,12 @@ class AssemblyTAlign(object):
       
     self.frags = self.frags_dict.keys()
     
-    try:
-      self.frags.sort(key=lambda x:x.split('/')[1])
-    except KeyError:
-      print >>debug_log, "Error: assumes PacBio read names"
-      sys.exit(1)
+    self.frags.sort()
+#    try:
+#      self.frags.sort(key=lambda x:x.split('/')[1])
+#    except KeyError:
+#      print >>debug_log, "Error: assumes PacBio read names"
+#      sys.exit(1)
     
   def _get_overlap_right_triangle(self, x1,y1,d1,c1, x2,y2,d2,c2):
     assert c2>=c1

@@ -36,20 +36,20 @@ primer designs are given in <temp_tag>.out.
 
 	python ambre_design.py <reference.fasta> <regions.txt> [<temptag>]
 
-Primer designing involves numerous parameters to ensure primers are viable for
-PCR. AmBre requires primers to be compatible with one another and evenly tile
-supposed regions. Specifying too large or many regions requires more primers
-and inefficent PCR. See below for fine-tuning parameters.
-
 Parameters are defined in the the config file "ambre.conf". A user-defined
 config file can be used with the "--config" argument.
+Primer designing involves numerous parameters to ensure primers are viable for
+PCR. AmBre requires primers to be compatible with one another and evenly tile
+supposed regions. Specifying too large or too many regions requires more primers
+and leads to unreliable PCR. See below for fine-tuning parameters.
 
-Temptag is used as an identifier for intermediate files. Recommended to specify
+Temptag is used as an identifier for intermediate files. 
+It is recommended to specify temptag as
 a directory or directory along with a prefix expected for AmBre-design
 intermediate files.
 
 For example, to reprint primer solutions and generate a summary figure for
-primer locations on input regions::
+primer locations on input regions using temptag.
 
 	python ambre_design.py -c <reference.fasta> <regions.txt> <temptag>
 

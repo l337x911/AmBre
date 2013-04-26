@@ -8,8 +8,8 @@ patel [dot] anandd [at] gmail [dot] com
 AmBre is composed of two computational parts. A) Primer Designing
 B) Long read sequence analysis.::
 
-    python ambre_design.py <reference.fasta> <regions.txt> <temp_tag>
-    python ambre_analyze.py <reference.fasta> <mapped_reads.sam>
+    python ambre_design.py <reference.fasta> <regions.txt> [<temptag>]
+    python ambre_analyze.py <reference.fasta> <contig> <mapped_reads.sam> [<temptag>]
 
 
 Installing
@@ -51,7 +51,7 @@ file specify number of threads and a temp directory to store intermediate files.
  Note, user-specific  config files can be used by running any module with the --config argument. 
  
 To verify the installation/configuration is correct and
- run a small test case for AmBre-design and AmBre-analyze ::
+ run a small test case for AmBre-design and AmBre-analyze (takes ~5min). ::
 
 	python ambre_test.py
 	
@@ -59,6 +59,7 @@ If all is well, continue to usage.
 
 Usage
 =========
+
 AmBre-design and AmBre-analyze are fairly independent.
 
 For AmBre-design see [design usage](USEAGE-DESIGN.md) for details.

@@ -1,98 +1,95 @@
 ============
-AmBre-design Usage
+AmBre-analyze Usage
 ============
 
 Description
 ========
 
-AmBre-design designs an assay to detect structural variations. Given input
-regions where one expects breakpoints for a particular structural variation
-(SV), AmBre-design finds primers uniformly tiled across the regions to reliably
-amplify DNA harboring the structural variation with PCR.
- 
-Each structural variation is a rearrangement of a reference DNA segments to
-produce a novel adjacency in the donor sample. However, it is possible to know
-that a SV occurs, without knowing the exact boundaries of the rearranged
-reference segments. In PCR, a forward primer (DNA sequence) designed to the
-left and a reverse primer (reverse complement DNA sequence) designed to the
-right of the donor sample adjacency would reproduce DNA harboring the SV. PCR
-is only capable of reproducing a limited DNA length, so primers can only be
-designed a certain distance away from the donor adjacency. Using multiple
-forward primers and reverse primers across a breakpoint region ensures that
-some forward and reverse primer appear within an amplifiable distance around
-the donor sample adjacency.
+Analyzes Pacifc Biosciences amplicon resequencing data where amplicons contain
+structural variations (SV). AmBre-analyze clusters reads that support the same
+SV and then calls breakpoint and consensus amplicon sequences, despite reads
+having high insertion and deletion error rates. 
 
+Sequence analysis involves a) local alignment with BLASR, b) alignment segmentation,
+ c) geometric SV clustering
+approach similar to Sindi et al. (2009). d) breakpoint and consensus sequence 
+refinement. 
 See Patel et al. (submitted) for details.
 
-To Run
-========
+To Run 
+======== 
 
-Designing requires a reference sequence (fasta format) and a set of forward and
-reverse intervals to select primers from. The <regions.txt> is a tab-delimited
-file having intervals in rows and columns as contig name, interval start,
-interval end, type (True for forward, False if reverse). See
-"examples/regions.test" for an example regions file.  If specified, resulting
-primer designs are given in <temp_tag>.out. 
+AmBre-analyze requires a local alignment file (hard-clipped SAM
+format) with the corresponding reference file (fasta format) and contig name.
+Current implementation only supports intra-contig SVs. Estimated breakpoints
+are reported in "<temptag>.bp" and estimated amplicon sequences are reported
+in "<temptag>.fasta".
 
-	python ambre_design.py <reference.fasta> <regions.txt> [<temptag>]
+Given a "aligned_reads.bas.h5" file from PacBio.
 
-Primer designing involves numerous parameters to ensure primers are viable for
-PCR. AmBre requires primers to be compatible with one another and evenly tile
-supposed regions. Specifying too large or many regions requires more primers
-and inefficent PCR. See below for fine-tuning parameters.
+	/blasr/alignment/bin/blasr aligned_reads.bas.h5 <reference.fasta> -clipping hard -sam -out <aligned_reads_h5.sam>
+
+	python ambre_analyze.py <reference.fasta> <contig> <aligned_reads.sam> [<temptag>]
+
+The output "<temptag>.bp" has each breakpoint as an entry with the following form ::
+
+	#<name>\t\t\t<mode left bp>\t<mode right bp>
+	<read_idx>\t<bp on frag idx>\t<left bp>\t<right bp>\t<d>
+	...
+	...
+	=
+
+The next step is to perform amplicon refinement using PacBio Amplicon
+Resequencing Protocol.  Using SMRT-Analysis 4.0, call consensus sequencing
+using the estimated amplicon "<temptag>.fasta" as the reference and the entire
+read set.
 
 Parameters are defined in the the config file "ambre.conf". A user-defined
-config file can be used with the "--config" argument.
+config file can be used with the "--config" argument. See below for fine-tuning
+parameters.
 
-Temptag is used as an identifier for intermediate files. Recommended to specify
-a directory or directory along with a prefix expected for AmBre-design
-intermediate files.
+Temptag is used as an identifier for intermediate files.  It is recommended to
+specify temptag as a directory or directory along with a prefix expected for
+AmBre-analyze (can be the same prefix as AmBre-design) intermediate files. 
 
-For example, to reprint primer solutions and generate a summary figure for
-primer locations on input regions::
 
-	python ambre_design.py -c <reference.fasta> <regions.txt> <temptag>
+Dealing with amplicons with multiple breaks
+--------
 
+If independent breakpoints found in the previous section in AmBre-analyze
+belong to the same amplicon, then annotate the breakpoint headers in the
+"<temptag>.bp" file where instead of "#\t" is "#A549_01\t", "#A549_02", and
+"..." to represent ordering of breaks along an amplicon. 
+
+	python ambre_analyze.py --multi-break <reference.fasta> <contig> <aligned_reads.sam> [<temptag>]
+
+The new "<temptag>.fasta" file will have updated amplicon sequences containing
+multiple breaks.
 
 Parameters
 ========
 
 In the config file, modifying the following parameters
-changes the primer designing task.
+changes the sequence analysis task. See Patel et al. (submitted) for details.
 
-The approximate distance between primers.
+Scoring for local alignment segmetnation
+and filtering. Mismatch fraction is because CIGAR format only retains aligned bases (M)
+ not misaligned.
 
-	design_primer_spacing_p=6500
+	analyze_mismatch_fraction_p=0.02
+	analyze_match_score_p=1
+	analyze_mismatch_penalty_p=-3
+	analyze_gapopen_penalty_p=-1
+	analyze_gapext_penalty_p=-0.2
+	analyze_breakpoint_penalty_p=-50
 
-The density of primers in the candidate primer selection task,
-that is (Nd/L-1) where **N** is the number of *desired* primers
-**d** is the spacing between primers and **L** is the total 
-spacing. See Patel et al. (submitted) for details. 
+Filtering for minimum cluster size
 
-	design_primer_density_p=0.2
+	analyze_min_cluster_size_p=25
 
-Candidate primer generation is performed with Primer3 (Rozen et al. 2000)
-and the primer3 parameters file for long range PCR 
-used in Patel et al. (submitted) is listed in the ambre/data directory.
-Another primer3 parameter file can be used by adding the following
-line to the config file.
+More filtering criteria for breakpoints
 
-	primer3_long_p=/<file>/<path>/<primer3>/<parameters.txt>
-
-
-Fine-tune design parameters
----------
-
-The number of candidate primers to request from primer3
-per kilobase
-
-	design_primer3_primers_per_bp_p=50
-
-Filtering for primer3 penalty criteria
-
-	design_max_primer3_penalty_p=1.2
-
-Filtering primers with reference alignments within,
-	design_max_amp_dist=20000
-
+	analyze_min_sv_dist_p=10
+	analyze_max_d_p=100
+	analyze_default_segment_p=6500
 

@@ -21,6 +21,7 @@ from subprocess import Popen, PIPE
 from collections import namedtuple, defaultdict
 import os
 import sys
+import argparse
 import numpy as na
 import shlex
 from operator import attrgetter
@@ -415,19 +416,27 @@ class PrimerDesignWorkflow(object):
         
     self.solutions = sorted(slns, key=attrgetter('cost'))
     
-  def print_solutions(self, top=5):
+  def print_solutions(self, out_fpath=None, top=5):
     j = min(top, len(self.solutions))
+    if out_fpath is None:
+      out = sys.stdout
+    else:
+      out = open(out_fpath, 'wb')
     
     for i in range(j):
       sln = self.solutions[i]
-      print "%d\t%s\t%s"%(sln.cost, sln.time, sln.param)
+      print >>out, "%d\t%s\t%s"%(sln.cost, sln.time, sln.param)
       for reg in sln.primers:
         for p in reg:
           primer_dict, primer_idx = self.map_pos_to_primer_idx[p]
           contig, norm_pos, orientation = self.get_original_region_position(primer_dict[primer_idx][''][0])
-          print "%s\t%d\t%s\t%s\t%.4f"%(contig, norm_pos, orientation, primer_dict[primer_idx]['SEQUENCE'], primer_dict[primer_idx]['PENALTY'])
+          print >>out, "%s\t%d\t%s\t%s\t%.4f"%(contig, norm_pos, orientation, primer_dict[primer_idx]['SEQUENCE'], primer_dict[primer_idx]['PENALTY'])
         
-      print "="
+      print >>out, "="
+    
+    out.flush()
+    if not out_fpath is None:
+      out.close()
   def check(self, regions_fpath, temp_tag):
     primer3_out_fpath, pamp_out_fpath = '%s.primer3.out'%temp_tag, '%s.sa'%temp_tag
     
@@ -546,7 +555,7 @@ def check(regions_fpath, temp_tag):
 
   w.check(regions_fpath, temp_tag)
 
-def ambre_run(regions_fpath, temp_tag=None):
+def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 
           primer3_param=CONFIG.param['primer3_long'], 
           aligner=CONFIG.bin['aligner'], 
@@ -565,7 +574,7 @@ def ambre_run(regions_fpath, temp_tag=None):
         max_primer_penalty=max_primer_penalty,
         max_cross_amp_dist=max_cross_amp_dist)
 
-  w.print_solutions()
+  w.print_solutions(out_fpath=out_fpath)
   try:
     import matplotlib
     w.validate()
@@ -573,31 +582,40 @@ def ambre_run(regions_fpath, temp_tag=None):
     pass
 
 def main(): 
-  import sys
-  import argparse
-  
-  parser = argparse.ArgumentParser(description='Select compatible primers covering reference region.')
+  parser = argparse.ArgumentParser(prog='ambre-design.py', description='Select compatible primers covering reference region.')
   parser.add_argument('-c, --check', dest='check', action='store_const', const=check, default=None, help='checks if the temptag solution is valid')
   parser.add_argument('-a, --check-align', dest='check_align', action='store_const', const=test_cross_amp, default=None, help='Checks for cross amplifications')
+  
   parser.add_argument('reference', type=str, nargs=1, help='Fasta with multiple sequence entries.')
   parser.add_argument('regions', type=str, nargs=1, help='TAB-delimited regions file. A row is of the form:<fasta_seqid>  <start_position>  <region_length>  <primer_orientation>')
   
   parser.add_argument('temptag', type=str, nargs='?', default=None, help='Prefix for the run id / Directory to store Temps of a run id')
+  parser.add_argument('-o, --primers_out', type=str, nargs=1, default=None, dest="primer_fpath", help='Output primers to tab-delimited file. Default is to output to STDOUT')
+  parser.add_argument('--config', type=str, nargs=1, default=None, dest="config_fpath", help='Update parameters in default config file with new config file.')
    
   args = parser.parse_args()
   
   CONFIG.param['reference_fpath'] = args.reference[0]
-
-  if args.check is not None:
-    if args.temptag is None:
-      print "No path Id specified"
-      sys.exit()
-    else:
+  if not args.config_fpath is None:
+    CONFIG.update(args.config_fpath[0])
+   
+  if not args.check is None:
+    try: 
+      assert not args.temptag is None
       args.check(args.regions[0], args.temptag)
+    except AssertionError:
+      print "No temp id prefix specified"
+      sys.exit()
   elif args.check_align is not None:
+    try: 
+      assert not args.temptag is None
+      args.check(args.regions[0], args.temptag)
+    except AssertionError:
+      print "No temp id prefix specified"
+      sys.exit()
     args.check_align(args.regions[0], args.temptag)
   else:
-    ambre_run(args.regions[0], args.temptag)
+    ambre_run(args.regions[0], args.temptag, args.primer_fpath)
 
 if __name__=='__main__':
   main()

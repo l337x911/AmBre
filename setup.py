@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
-import sys, os
 
-version = '0.1'
+
+version = '1.0'
 
 setup(name='AmBre',
       version=version,
@@ -14,20 +14,27 @@ Designs primers using a workflow 1) primer generation with Primer3, 2) Primer fi
       author='Anand D. Patel',
       author_email='patel.anandd@gmail.com',
       url='',
-      license='',
+      license=open('license.txt', 'rb').read(),
       packages=find_packages(exclude=['ez_setup',]),
-      package_data={'ambre': ['*.txt', 'ambre.conf', 'examples/reference.fasta',
+      package_data={'ambre': ['*.txt', 'ambre.conf', 
+                              'examples/reference.fasta', 'examples/reference.fasta.fai'
                               'examples/aligned_blasr_h5.sam',
-                              'examples/regions.test', 'data/*.txt']},
+                              'examples/regions_ex/*',
+                              'examples/regions.test', 'data/*.txt', 'examples/gold/*']},
       include_package_data=True,
       zip_safe=True,
       install_requires=[
           # -*- Extra requirements: -*-
+          "numpy>=1.6"
       ],
+      extras_require = {
+        'MPL' : ["matplotlib>=1.1.1rc"]                 
+      },
       entry_points = {
         'console_scripts': [ 
         'ambre_design = ambre.design.workflow:main',
         'ambre_analyze = ambre.analyze.workflow:main',
+        'ambre_test = ambre.test.install_unit:install_check',
         ]
       }
       )

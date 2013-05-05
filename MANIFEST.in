@@ -1,4 +1,5 @@
-include *.txt *.md ambre.conf
+include *.txt *.md 
+recursive-include ambre ambre.conf
 recursive-include ambre/data *.txt
 recursive-include ambre/examples *
 recursive-include ambre/examples/regions_ex *

@@ -8,7 +8,7 @@ setup(name='AmBre',
      
       description="""Designing primers for and analyzing amplified breakpoints.
 Designs primers using a workflow 1) primer generation with Primer3, 2) Primer filtering with Blat, 3) Simulated annealing for primer selection. Analyzes PacBio sequenced amplicons with 1) BLAST local alignment, 2) Dynamic programming to filter and trim local alignments, 3) Sweep-line algorithm for clustering fragments, 4) Summarize breakpoints into amplicon templates""",
-      long_description=open('README.txt').read(),
+      long_description=open('README.md').read(),
       classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='AmBre PAMP primer PCR SV cancer amplification breakpoints',
       author='Anand D. Patel',
@@ -16,7 +16,7 @@ Designs primers using a workflow 1) primer generation with Primer3, 2) Primer fi
       url='',
       license=open('license.txt', 'rb').read(),
       packages=find_packages(exclude=['ez_setup',]),
-      package_data={'ambre': ['*.txt', 'ambre.conf', 
+      package_data={'ambre': ['*.txt', '*.md', 'ambre.conf', 
                               'examples/reference.fasta', 'examples/reference.fasta.fai'
                               'examples/aligned_blasr_h5.sam',
                               'examples/regions_ex/*',

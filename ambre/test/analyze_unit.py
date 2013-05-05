@@ -18,7 +18,7 @@
 from ambre.config import CONFIG
 import unittest
 from pkg_resources import resource_filename
-import os
+import os, errno
 from ambre.analyze.align_seg import MaxAlignmentScoreFragFiltering
 from ambre.analyze.frag_clustering import AssemblyTAlign
 from ambre.analyze.predict_templates import PredictedTemplates
@@ -27,17 +27,24 @@ from ambre.analyze.workflow import ambre_run
 
 class TestAnalyze(unittest.TestCase):
   def setUp(self):
-    self.alignment_fpath = resource_filename('ambre',  os.path.join('examples', 'aligned_blasr_h5.sam'))
-    self.ref_fpath = resource_filename('ambre',  os.path.join('examples', 'reference.fasta'))
-    
-    os.link(self.alignment_fpath, os.path.join(CONFIG.dir['examples'], os.path.basename(self.alignment_fpath)))
-    os.link(self.ref_fpath, os.path.join(CONFIG.dir['examples'], os.path.basename(self.ref_fpath)))
+    self.alignment_fpath = os.path.abspath(resource_filename('ambre',  os.path.join('examples', 'aligned_blasr_h5.sam')))
+    self.ref_fpath =  os.path.abspath(resource_filename('ambre',  os.path.join('examples', 'reference.fasta')))
     
     if CONFIG.dir['examples'] is None:
-      self.ex_temp = resource_filename('ambre', os.path.join('examples','regions_ex', 'analyze_ex'))
+      self.ex_temp = os.path.abspath(resource_filename('ambre', os.path.join('examples','regions_ex', 'analyze_ex')))
+      
     else:
       self.ex_temp = os.path.join(CONFIG.dir['examples'], 'analyze_ex')
-    
+  
+    if not CONFIG.dir['examples'] is None:
+      try:
+        os.link(self.alignment_fpath, os.path.join(CONFIG.dir['examples'], os.path.basename(self.alignment_fpath)))
+        os.link(self.ref_fpath, os.path.join(CONFIG.dir['examples'], os.path.basename(self.ref_fpath)))
+      except OSError as exc:
+        if exc.errno == errno.EEXIST:
+          pass
+        else: raise
+
     self.talignment_fpath = "%s.talign"%self.ex_temp
     self.bp_fpath = '%s.bp'%self.ex_temp
     self.template_fpath = '%s.fasta'%self.ex_temp

@@ -51,8 +51,8 @@ def install_check():
   
   parser = argparse.ArgumentParser(prog='install_unit.py', description='Unit tests to check installation. Runs small example for AmBre-design and AmBre-analyze')
   parser.add_argument('-c, --locate-config', default=False, dest="config_locate", action='store_true', help='Prints config_fpath location and exits.')
-  parser.add_argument('--examples-dir', type=str, nargs='?', default=None, dest="examples_dir", help='Specify directory to output example data')
-  parser.add_argument('--config', type=str, nargs='?', default=None, dest="config_fpath", help='Update parameters in default config file with new config file')
+  parser.add_argument('--example-dir', type=str, nargs=1, default=None, dest="examples_dir", help='Specify directory to output example data')
+  parser.add_argument('--config', type=str, nargs=1, default=None, dest="config_fpath", help='Update parameters in default config file with new config file')
   
   args = parser.parse_args()
   

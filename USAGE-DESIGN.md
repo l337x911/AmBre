@@ -31,7 +31,7 @@ Designing requires a reference sequence (fasta format) and a set of forward and
 reverse intervals to select primers from. The <regions.txt> is a tab-delimited
 file specifies these intervals as rows::
 
-	<contig name>\t<interval start>\t<interval length>\t<orientation>\n
+	<contig name>\t<interval start>\t<interval length>\t<orientation>
 	...
 	...
 	
@@ -68,8 +68,9 @@ or from source::
 	python -m ambre.design.workflow -c <reference.fasta> <regions.txt> <temptag>
 
 The primer design output is::
-	<design cost>\t<time seconds>\t<sa parameters>\n
-	<contig>\t<position on contig>\t<is_forward>\t<primer sequence>\t<primer3 score>\n
+
+	<design cost>\t<time seconds>\t<sa parameters>
+	<contig>\t<position on contig>\t<is_forward>\t<primer sequence>\t<primer3 score>
 	...
 	...
 	=

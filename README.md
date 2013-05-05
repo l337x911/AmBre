@@ -59,6 +59,7 @@ To verify the installation/configuration is correct and
 If all is well, continue to usage.
 
 Alternatively, to run from source directory use ::
+
 	python -m ambre.test.install_unit -c
 	python -m ambre.test.install_unit
 

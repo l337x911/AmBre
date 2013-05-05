@@ -29,7 +29,11 @@ Given a "aligned_reads.bas.h5" file from PacBio.
 
 	/blasr/alignment/bin/blasr aligned_reads.bas.h5 <reference.fasta> -clipping hard -sam -out <aligned_reads_h5.sam>
 
-	python ambre_analyze.py <reference.fasta> <contig> <aligned_reads.sam> [<temptag>]
+	ambre_analyze <reference.fasta> <contig> <aligned_reads.sam> [<temptag>]
+	
+or from source::
+
+	python -m ambre.analyze.workflow <reference.fasta> <contig> <aligned_reads.sam> [<temptag>]
 
 The output "<temptag>.bp" has each breakpoint as an entry with the following form ::
 

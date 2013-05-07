@@ -22,7 +22,7 @@ Designs primers using a workflow 1) primer generation with Primer3, 2) Primer fi
                               'examples/regions_ex/*',
                               'examples/regions.test', 'data/*.txt', 'examples/gold/*']},
       include_package_data=True,
-      zip_safe=True,
+      zip_safe=False,
       install_requires=[
           # -*- Extra requirements: -*-
           "numpy>=1.6"

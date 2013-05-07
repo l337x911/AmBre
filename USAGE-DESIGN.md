@@ -1,3 +1,8 @@
+---
+layout: usage
+title: AmBre-design Usage
+---
+
 ============
 AmBre-design Usage
 ============
@@ -35,7 +40,7 @@ file specifies these intervals as rows::
 	...
 	...
 	
-where orientation is "True" for forward or "False" if reverse.
+where orientation is "forward" for forward or "reverse" if reverse.
 See "examples/regions.test" for an example regions file.  If specified, resulting
 primer designs are given in <temp_tag>.out. 
 
@@ -107,7 +112,7 @@ Fine-tune design parameters
 The number of candidate primers to request from primer3
 per kilobase
 
-	design_primer3_primers_per_bp_p=50
+	design_primer3_primers_per_kbp_p=50
 
 Filtering for primer3 penalty criteria
 

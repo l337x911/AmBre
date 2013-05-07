@@ -1,3 +1,8 @@
+---
+layout: default
+title: AmBre ReadMe
+---
+
 ===========
 AmBre: Primer designing and sequence analysis for amplifying breakpoints.
 ===========

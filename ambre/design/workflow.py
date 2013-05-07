@@ -171,7 +171,10 @@ class PrimerDesignWorkflow(object):
         tokens = l.strip().split('\t')
         
         c,a,b, s = tokens[0], int(tokens[1]), int(tokens[2]), tokens[3]
-        
+        try:
+          assert s=='forward' or s=='reverse'
+        except AssertionError:
+          print >>sys.stderr, "Regions file orientation is not forward or reverse"
         if s=='forward':
           self.regions.append((c, a, b, True))
         else:
@@ -207,10 +210,10 @@ class PrimerDesignWorkflow(object):
     self.forward_dict, self.reverse_dict = parse_primer3.get_primer_dict(primer3_out)
       
     for primer_idx, info_dict in self.forward_dict.items():
-      if info_dict['PENALTY']>max_penalty:
+      if float(info_dict['PENALTY'])>max_penalty:
         self.forward_dict.pop(primer_idx)
     for primer_idx, info_dict in self.reverse_dict.items():
-      if info_dict['PENALTY']>max_penalty:
+      if float(info_dict['PENALTY'])>max_penalty:
         self.reverse_dict.pop(primer_idx)
           
     self.map_pos_to_primer_idx = dict([(info_dict[''][0], (self.forward_dict, idx)) for idx, info_dict in self.forward_dict.iteritems()]
@@ -434,10 +437,11 @@ class PrimerDesignWorkflow(object):
         
       print >>out, "="
     
-    out.flush()
     if not out_fpath is None:
       out.close()
-  def check(self, regions_fpath, temp_tag):
+    else:
+      out.flush()      
+  def check(self, regions_fpath, temp_tag, out_fpath):
     primer3_out_fpath, pamp_out_fpath = '%s.primer3.out'%temp_tag, '%s.sa'%temp_tag
     
     self.set_regions(regions_fpath)
@@ -452,7 +456,7 @@ class PrimerDesignWorkflow(object):
     
     with open(pamp_out_fpath, 'rb') as pamp_out:  
       self.parse_pamp_output(pamp_out.read())
-    self.print_solutions(15)
+    self.print_solutions(out_fpath=out_fpath, top=15)
     try: 
       import matplotlib
       self.validate()
@@ -547,13 +551,15 @@ def test_cross_amp(regions_fpath, temp_tag):
       contig, norm_pos, orientation = w.get_original_region_position(primer_dict[primer_idx][''][0])
       print "%s\t%d\t%s\t%s"%(contig, norm_pos, orientation, primer_dict[primer_idx]['SEQUENCE'])
   
-def check(regions_fpath, temp_tag):
+def check(regions_fpath, temp_tag, out_fpath):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 
           primer3_param=CONFIG.param['primer3_long'], 
           aligner=CONFIG.bin['aligner'], 
-          multiplx=CONFIG.bin['multiplx'])
+          multiplx=CONFIG.bin['multiplx'],
+          d=int(CONFIG.param['design_primer_spacing']),
+          rho=float(CONFIG.param['design_primer_density']))
 
-  w.check(regions_fpath, temp_tag)
+  w.check(regions_fpath, temp_tag, out_fpath)
 
 def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 
@@ -562,17 +568,19 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
           multiplx=CONFIG.bin['multiplx'],
           d=int(CONFIG.param['design_primer_spacing']),
           rho=float(CONFIG.param['design_primer_density']))
-  primers_per_bp = int(CONFIG.param['design_primer3_primers_per_bp'])
-  max_primer_penalty = float(CONFIG.param['design_max_primer3_penalty'])
-  max_cross_amp_dist = int(CONFIG.param['design_max_cross_amp_dist'])
-
 
   w.run(regions_fpath,
         delete_flag=(CONFIG.param['cleanup_flag']=="True"),
         temp_tag=temp_tag,
-        primers_per_bp=primers_per_bp,
-        max_primer_penalty=max_primer_penalty,
-        max_cross_amp_dist=max_cross_amp_dist)
+        primers_per_bp=int(CONFIG.param['design_primer3_primers_per_kbp']),
+        max_primer_penalty=float(CONFIG.param['design_max_primer3_penalty']),
+        max_cross_amp_dist=int(CONFIG.param['design_max_cross_amp_dist']),
+        max_alignment_count=int(CONFIG.param['design_max_alignments']),
+        min_alignment_len=int(CONFIG.param['design_3end_len_alignment']),
+        pamp_max_iterations= int(CONFIG.param['design_sa_max_iterations']),
+        pamp_repeats= int(CONFIG.param['design_sa_repetitions']),
+        pamp_t_ms= map(float,CONFIG.param['design_sa_ms'].split(',')),
+        pamp_t_bs=map(float,CONFIG.param['design_sa_bs'].split(',')))
 
   w.print_solutions(out_fpath=out_fpath)
   try:
@@ -590,7 +598,7 @@ def main():
   parser.add_argument('regions', type=str, nargs=1, help='TAB-delimited regions file. A row is of the form:<fasta_seqid>  <start_position>  <region_length>  <primer_orientation>')
   
   parser.add_argument('temptag', type=str, nargs='?', default=None, help='Prefix for the run id / Directory to store Temps of a run id')
-  parser.add_argument('-o, --primers_out', type=str, nargs=1, default=None, dest="primer_fpath", help='Output primers to tab-delimited file. Default is to output to STDOUT')
+  parser.add_argument('-o, --primers-out', type=str, nargs=1, default=None, dest="primer_fpath", help='Output primers to tab-delimited file. Default is to output to STDOUT')
   parser.add_argument('--config', type=str, nargs=1, default=None, dest="config_fpath", help='Update parameters in default config file with new config file.')
    
   args = parser.parse_args()
@@ -598,24 +606,24 @@ def main():
   CONFIG.param['reference_fpath'] = args.reference[0]
   if not args.config_fpath is None:
     CONFIG.update(args.config_fpath[0])
-   
+  
   if not args.check is None:
     try: 
       assert not args.temptag is None
-      args.check(args.regions[0], args.temptag)
+      args.check(args.regions[0], args.temptag, args.primer_fpath[0])
     except AssertionError:
       print "No temp id prefix specified"
       sys.exit()
   elif args.check_align is not None:
     try: 
       assert not args.temptag is None
-      args.check(args.regions[0], args.temptag)
+      args.check(args.regions[0], args.temptag, args.primer_fpath[0])
     except AssertionError:
       print "No temp id prefix specified"
       sys.exit()
     args.check_align(args.regions[0], args.temptag)
   else:
-    ambre_run(args.regions[0], args.temptag, args.primer_fpath)
+    ambre_run(args.regions[0], args.temptag, args.primer_fpath[0])
 
 if __name__=='__main__':
   main()

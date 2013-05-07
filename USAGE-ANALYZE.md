@@ -1,3 +1,8 @@
+---
+layout: usage
+title: AmBre-analyze Usage
+---
+
 ============
 AmBre-analyze Usage
 ============

@@ -171,7 +171,10 @@ class PrimerGraph(object):
     self.primer_graph_mat = self.primer_graph_mat[x, y]
 
   def get_dimerization_density(self):
-    return (float(na.sum(self.primer_graph_mat)) / 2) / len(self.primers)
+    #assert len(self.primers)==self.primer_graph_mat.shape[0]
+    #return float(na.sum(self.primer_graph_mat))
+    return float(na.sum(self.primer_graph_mat))/ (0.5*len(self.primers)*(1+len(self.primers)))
+    
 
   def check_primer_dimers(self, primer_list):    
     primer_idx = self.map_primers_to_idx[primer_list]

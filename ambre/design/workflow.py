@@ -547,12 +547,22 @@ def test_cross_amp(regions_fpath, temp_tag):
     
   w.check_cross_amplification(max_dist=int(CONFIG.param['design_max_cross_amp_dist']))
   
-  for amp in na.array(list(w.cross_amp))[na.random.random_integers(0,len(w.cross_amp)-1,30)]:
-    print "CrossAmp:", amp  
-    for p in amp:
-      primer_dict, primer_idx = w.map_pos_to_primer_idx[p]
-      contig, norm_pos, orientation = w.get_original_region_position(primer_dict[primer_idx][''][0])
-      print "%s\t%d\t%s\t%s"%(contig, norm_pos, orientation, primer_dict[primer_idx]['SEQUENCE'])
+  multiplx_out_fpath = '%s.multiplx.out'%temp_tag
+  if (os.path.isfile('%s.multiplx'%temp_tag) and os.path.isfile(multiplx_out_fpath)):
+    regions_pamp = ''.join(["%d\t%d\t%s\n"%(a,b,w.is_forward_dict[s]) for (a,b,s) in w.regions_on_seq])
+    
+    primer_graph = sa_cost.get_primer_graph(multiplx_out_fpath, regions_pamp, d=w.d, rho=w.rho)
+    print "#Incompatible primer density: ", primer_graph.get_dimerization_density()
+  
+  if len(w.cross_amp)>1:
+    for amp in na.array(list(w.cross_amp))[na.random.random_integers(0,len(w.cross_amp)-1,30)]:
+      print "CrossAmp:", amp  
+      for p in amp:
+        primer_dict, primer_idx = w.map_pos_to_primer_idx[p]
+        contig, norm_pos, orientation = w.get_original_region_position(primer_dict[primer_idx][''][0])
+        print "%s\t%d\t%s\t%s"%(contig, norm_pos, orientation, primer_dict[primer_idx]['SEQUENCE'])
+      
+  
   
 def check(regions_fpath, temp_tag, out_fpath):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 

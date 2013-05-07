@@ -537,12 +537,15 @@ def test_cross_amp(regions_fpath, temp_tag):
     w.get_primers(primer3_out_f)
   
   with open('%s.align.out'%temp_tag, 'rb') as blast_out_f:
-    w.set_alignments_dict(blast_out_f, max_align=10, min_align_len=18)
+    
+    w.set_alignments_dict(blast_out_f,
+                          max_align=int(CONFIG.param['design_max_alignments']),
+                          min_align_len=int(CONFIG.param['design_3end_len_alignment']))
   
   for primer_pos in w.alignments_dict.iterkeys():
     primer_dict, primer_idx = w.map_pos_to_primer_idx[primer_pos]
     
-  w.check_cross_amplification()
+  w.check_cross_amplification(max_dist=int(CONFIG.param['design_max_cross_amp_dist']))
   
   for amp in na.array(list(w.cross_amp))[na.random.random_integers(0,len(w.cross_amp)-1,30)]:
     print "CrossAmp:", amp  
@@ -598,7 +601,7 @@ def main():
   parser.add_argument('regions', type=str, nargs=1, help='TAB-delimited regions file. A row is of the form:<fasta_seqid>  <start_position>  <region_length>  <primer_orientation>')
   
   parser.add_argument('temptag', type=str, nargs='?', default=None, help='Prefix for the run id / Directory to store Temps of a run id')
-  parser.add_argument('-o, --primers-out', type=str, nargs=1, default=None, dest="primer_fpath", help='Output primers to tab-delimited file. Default is to output to STDOUT')
+  parser.add_argument('-o, --primers-out', type=str, nargs=1, default=[None], dest="primer_fpath", help='Output primers to tab-delimited file. Default is to output to STDOUT')
   parser.add_argument('--config', type=str, nargs=1, default=None, dest="config_fpath", help='Update parameters in default config file with new config file.')
    
   args = parser.parse_args()
@@ -617,7 +620,7 @@ def main():
   elif args.check_align is not None:
     try: 
       assert not args.temptag is None
-      args.check(args.regions[0], args.temptag, args.primer_fpath[0])
+      args.check_align(args.regions[0], args.temptag)
     except AssertionError:
       print "No temp id prefix specified"
       sys.exit()

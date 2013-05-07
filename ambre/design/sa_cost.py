@@ -268,6 +268,9 @@ class PrimerGraph(object):
       combined_primers = na.concatenate(sorted_primers_init_by_region)
       independent_set_flag = not self.check_primer_dimers(combined_primers)
       tries += 1
+      if tries>10000000:
+        print >>sys.stderr, "ERROR: Unexpected number of attempts for finding a random initial solution."
+        raise 
     curr_cost = self.adj_cost_func(sorted_primers_init_by_region)
     
     return curr_cost, sorted_primers_init_by_region
@@ -375,6 +378,8 @@ class PrimerGraph(object):
     print >> output_info, "TerminationClock:%.2f" % (time.time() - start_clock)
     if not output_fpath is None:
       output_info.close()
+    else:
+      output_info.flush()
     return min_cost, min_primer_sets, iter_count, time.time() - start_clock   
 
 def run_simulated_annealing(graph, schedule, max_iteration, max_age, output=None):
@@ -419,7 +424,9 @@ def multi_vary_temperature_schedule(graph=None,
     cost, primer_sets, iter_count, runtime = result.get()
     print >> output, "%03d,%02d,%02d\t%08d\t%.2f\t%s" % (int(na.log10(-1 * schedule.m)), int(na.log10(schedule.b)), i, cost, runtime,
                     ":".join([",".join(['%d' % s for s in na.sort(list(primer_sets[r_idx]))]) for r_idx in range(len(primer_sets))]))    
-
+  if output is None:
+    output.flush()
+    
 if __name__ == '__main__':
   multi_vary_temperature_schedule(t_ms=(-(10 ** -2), -(10 ** -3)), t_bs=(10 ** 4,), repeats=3)
   multi_vary_temperature_schedule()

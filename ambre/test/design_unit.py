@@ -34,6 +34,8 @@ class TestDesignWorkflow(unittest.TestCase):
                      aligner=CONFIG.bin['aligner'], 
                      multiplx=CONFIG.bin['multiplx'],
                      d=1000,rho=0.1)
+    
+    
     ex_regions =  os.path.abspath(resource_filename('ambre', os.path.join('examples','regions.test')))
     if CONFIG.dir['examples'] is None:
       ex_temp =  os.path.abspath(resource_filename('ambre', os.path.join('examples','regions_ex', 'design_ex')))
@@ -46,16 +48,46 @@ class TestDesignWorkflow(unittest.TestCase):
         if exc.errno == errno.EEXIST:
           pass
         else: raise
-
-    w.run(ex_regions,temp_tag=ex_temp,
-        primers_per_bp=75, max_cross_amp_dist=20000,
-        max_primer_penalty=1.5,
-        max_alignment_count=10,
-        min_alignment_len=18,
-        pamp_max_iterations= 1000000,pamp_repeats=2,
-        pamp_t_ms= (-(10**-1),), pamp_t_bs=(10**4,))
+        
+    pamp_t_ms= map(float,CONFIG.param['design_sa_ms'].split(','))
+    pamp_t_bs=map(float,CONFIG.param['design_sa_bs'].split(','))
+    
+    print pamp_t_ms, pamp_t_bs
+    
+    w.run(ex_regions,
+        delete_flag=(CONFIG.param['cleanup_flag']=="True"),
+        temp_tag=ex_temp,
+        primers_per_bp=int(CONFIG.param['design_primer3_primers_per_kbp']),
+        max_primer_penalty=float(CONFIG.param['design_max_primer3_penalty']),
+        max_cross_amp_dist=int(CONFIG.param['design_max_cross_amp_dist']),
+        max_alignment_count=int(CONFIG.param['design_max_alignments']),
+        min_alignment_len=int(CONFIG.param['design_3end_len_alignment']),
+        pamp_max_iterations= int(CONFIG.param['design_sa_max_iterations']),
+        pamp_repeats=2,
+        pamp_t_ms= (-(10**-1),),
+        pamp_t_bs=(10**4,))
+    
+#    w.run(ex_regions,temp_tag=ex_temp,
+#        primers_per_bp=75, max_cross_amp_dist=20000,
+#        max_primer_penalty=1.5,
+#        max_alignment_count=10,
+#        min_alignment_len=18,
+#        pamp_max_iterations= 1000000,pamp_repeats=2,
+#        pamp_t_ms= (-(10**-1),), pamp_t_bs=(10**4,))
+    
     w.print_solutions(out_fpath = "%s.out"%ex_temp)
+    
     #w.validate()
+  
+  def test_ambre_design(self):
+    CONFIG.param['reference_fpath'] = os.path.abspath(resource_filename('ambre', os.path.join('examples', 'reference.fasta')))
+
+    w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'],
+                     primer3_param=CONFIG.param['primer3_long'], 
+                     aligner=CONFIG.bin['aligner'], 
+                     multiplx=CONFIG.bin['multiplx'],
+                     d=1000,rho=0.1)
+
   
   def test_workflow_valid(self):
     CONFIG.param['reference_fpath'] = resource_filename('ambre', os.path.join('examples', 'reference.fasta'))

@@ -182,14 +182,17 @@ class PrimerDesignWorkflow(object):
           
   def set_sequence(self):
     ref = reference.Reference(CONFIG.param['reference_fpath'])
+    
     self.seq = ""
     self.regions_on_seq = []
     for c,a,b,s in self.regions:
+      
       start = len(self.seq)
       self.seq += ref.get_sequence(c,a,a+b)
+      
       end = len(self.seq)-start
       self.regions_on_seq.append((start, end, s))
-      
+    
     ref.close()
     
   def get_primer3_regions(self):
@@ -242,7 +245,7 @@ class PrimerDesignWorkflow(object):
   
   def run(self, regions_fpath, 
         temp_tag=None, delete_flag=False, 
-        primers_per_bp=75, max_cross_amp_dist=20000,
+        primers_per_kbp=75, max_cross_amp_dist=20000,
         pamp_off=False,
         max_primer_penalty=1.5,
         max_alignment_count=10,
@@ -271,7 +274,7 @@ class PrimerDesignWorkflow(object):
       if not (os.path.isfile('%s.primer3'%temp_tag) and os.path.isfile('%s.primer3.out'%temp_tag)):
         os.chdir(self.primer3_path)  
         primer3_in = open('%s.primer3'%temp_tag, 'wb')
-        print >>primer3_in, "PRIMER_NUM_RETURN=%d"%(len(self.seq)/primers_per_bp)
+        print >>primer3_in, "PRIMER_NUM_RETURN=%d"%((len(self.seq)/1000)*primers_per_kbp)
 
         print >>primer3_in, "SEQUENCE_ID=pamp_workflow"
         print >>primer3_in, "SEQUENCE_TEMPLATE=%s"%self.seq
@@ -459,8 +462,9 @@ class PrimerDesignWorkflow(object):
     self.print_solutions(out_fpath=out_fpath, top=15)
     try: 
       import matplotlib
+      
       self.validate()
-    except:
+    except ImportError:
       pass
   def validate(self):
     from matplotlib import font_manager,pyplot as plt
@@ -470,7 +474,8 @@ class PrimerDesignWorkflow(object):
     # 
     # Top 2 Solution Coverages
     fig = plt.figure()
-    
+    fig.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95,
+                    wspace=None, hspace=0.27)
     num_solutions = min(3, len(self.solutions))
     num_plot = num_solutions+1
     ax_primer3 = fig.add_subplot(num_plot,1,1)
@@ -494,21 +499,26 @@ class PrimerDesignWorkflow(object):
         n_pos = f_pos
         
       ax_primer3.hist(pos[na.logical_and(pos>s_a, pos<(s_b+s_a))], bins=50, color=colors[idx], label=tag)
-      
-      wrong_primers = pos[na.logical_and(n_pos>s_a, n_pos<s_b)] 
-      if len(wrong_primers)>0:
-        print "Region %s has opposing oriented primers, %s"%(tag, ",".join(['%d'%i for i in wrong_primers]))
+      try:
+        print pos.shape, "NPos", n_pos.shape, "SA", s_a, "SB", s_b
+        wrong_primers = pos[na.logical_and(n_pos>s_a, n_pos<s_b)] 
+        if len(wrong_primers)>0:
+          print "Region %s has opposing oriented primers, %s"%(tag, ",".join(['%d'%i for i in wrong_primers]))
+      except:
+        pass
     
     
     ax_primer3.set_xlim(*x_range)
     ax_primer3.legend(loc='upper right', prop=prop)
-    
+    ax_primer3.set_title('histogram of filtered primers')
+    ax_primer3.set_ylabel('number of primers')
+    ax_primer3.xaxis.set_major_locator(plt.NullLocator())
     colors = {True:'b', False:'r'}
     
     for i in range(num_solutions):
       sln = self.solutions[i]
       ax_sln = fig.add_subplot(num_plot, 1, i+2)
-      ax_sln.set_title('Solution %d %d'%(i, sln.cost))
+      ax_sln.set_title('Solution %d %d'%(i+1, sln.cost))
       
       for (a,b,s), reg in zip(self.regions_on_seq, sln.primers):
         
@@ -520,7 +530,11 @@ class PrimerDesignWorkflow(object):
     
         ax_sln.vlines([a,a+b],[0,0],[100,100], lw=3)
       ax_sln.set_xlim(*x_range)
-      
+      ax_sln.yaxis.set_major_locator(plt.NullLocator())
+      if i<num_solutions-1:
+        ax_sln.xaxis.set_major_locator(plt.NullLocator())
+        
+    ax_sln.set_xlabel('DNA positions covered')  
     plt.show()
 
   
@@ -585,7 +599,7 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
   w.run(regions_fpath,
         delete_flag=(CONFIG.param['cleanup_flag']=="True"),
         temp_tag=temp_tag,
-        primers_per_bp=int(CONFIG.param['design_primer3_primers_per_kbp']),
+        primers_per_kbp=int(CONFIG.param['design_primer3_primers_per_kbp']),
         max_primer_penalty=float(CONFIG.param['design_max_primer3_penalty']),
         max_cross_amp_dist=int(CONFIG.param['design_max_cross_amp_dist']),
         max_alignment_count=int(CONFIG.param['design_max_alignments']),
@@ -599,7 +613,7 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
   try:
     import matplotlib
     w.validate()
-  except:
+  except ImportError:
     pass
 
 def main(): 
@@ -634,7 +648,7 @@ def main():
     except AssertionError:
       print "No temp id prefix specified"
       sys.exit()
-    args.check_align(args.regions[0], args.temptag)
+    
   else:
     ambre_run(args.regions[0], args.temptag, args.primer_fpath[0])
 

@@ -28,7 +28,8 @@ class Config(object):
 
     # Defaults
     #self.param['primer3_short'] = os.path.abspath(resource_filename(__name__, os.path.join('data','primer3_v1_1_4_default_settings.txt')))
-    self.param['primer3_long'] = os.path.abspath(resource_filename(__name__, os.path.join('data','primer3_lr_A04.txt')))
+    #self.param['primer3_long'] = os.path.abspath(resource_filename(__name__, os.path.join('data','primer3_lr_A04.txt')))
+    self.param['primer3_long'] = os.path.abspath(resource_filename(__name__, os.path.join('data','primer3_lr_A05.txt')))
     self.dir['examples'] = None
   def add_bin(self, bin_name, bin_path):
     self.bin[bin_name]= bin_path

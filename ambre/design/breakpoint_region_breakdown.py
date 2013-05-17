@@ -12,8 +12,8 @@ import tempfile
 import numpy as na
 from ambre.config import CONFIG
 from ambre.utils import reference
-import ambre.design.parse_primer3 as parse_primer3
-from ambre.design.workflow import PrimerDesignWorkflow, BlatAlignment
+from collections import defaultdict
+from ambre.design.workflow import PrimerDesignWorkflow
 
 class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
   '''
@@ -152,13 +152,24 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
         self.get_primers(primer3_out_f, max_penalty=max_primer_penalty)
       print "#Stage1 Primer3Time: %.4f"%(time.time()-pre_primer3_time)
 
+      # Compress
+      map_repeat_seqs_f = defaultdict(list)
+      map_repeat_seqs_r = defaultdict(list)
+      for info_dict in self.forward_dict.itervalues():
+        map_repeat_seqs_f[info_dict['SEQUENCE']].append(info_dict[''][0]) 
+      for info_dict in self.reverse_dict.itervalues():
+        map_repeat_seqs_r[info_dict['SEQUENCE']].append(info_dict[''][0])
+      
       pre_align_time = time.time()
       aligner_out_fpath = '%s.align.out'%temp_tag
       if not (os.path.isfile('%s.align.fa'%temp_tag) and os.path.isfile(aligner_out_fpath)):
         
         aligner_in = open('%s.align.fa'%temp_tag, 'wb')
-        primers_fa = [">LEFT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.forward_dict.itervalues()]
-        primers_fa += [">RIGHT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.reverse_dict.itervalues()]
+        primers_fa = [">LEFT:%s\n%s"%('|'.join(l),k) for k,l in map_repeat_seqs_f]
+        primers_fa += [">RIGHT:%s\n%s"%('|'.join(l),k) for k,l in map_repeat_seqs_r]
+
+        #primers_fa = [">LEFT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.forward_dict.itervalues()]
+        #primers_fa += [">RIGHT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.reverse_dict.itervalues()]
         
         print >>aligner_in, "\n".join(primers_fa)
         aligner_in.close()
@@ -172,6 +183,12 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
       
       with open(aligner_out_fpath, 'rb') as aligner_out_f:
         self.set_alignments_dict(aligner_out_f, max_align=max_alignment_count, min_align_len=min_alignment_len)
+      
+      # Reverse the split
+      for k in self.alignments_dict.keys():
+        for primer_pos in map(int, k.split('|')):
+          self.alignments_dict[primer_pos] = self.alignments_dict[k]
+      
       print "#Stage2 AlignTime: %.4f"%(time.time()-pre_align_time)
     
       self.pairs_idx = set(self.forward_dict.keys()).intersection(self.reverse_dict.keys())

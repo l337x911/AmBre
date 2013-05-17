@@ -221,7 +221,8 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
 
 def ambre_run(region_str, number_of_pairs, temp_tag=None, out_fpath=None):
   w = PrimerBinarySearchWorkflow(primer3_path=CONFIG.dir['primer3'], 
-          primer3_param=CONFIG.param['primer3_short_param'])
+          primer3_param=CONFIG.param['primer3_short_param'],
+          aligner=CONFIG.bin['aligner'])
 
   contig, pos_str = region_str.split(':')
   start, end = map(int,pos_str.split('-'))

@@ -24,10 +24,11 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
 
     self.ref = reference.Reference(CONFIG.param['reference_fpath']) 
     self.pairs_per_iter = None
+    self.length = None
   def primer_pairs_even_spaced(self, length, number_of_pairs):
     from bisect import bisect
     
-    positions, sorted_idx = zip(*sorted([((self.reverse_dict[idx][''][0]+self.forward_dict[idx][''][0])/2,idx) for idx in self.pairs_idx]))
+    positions, sorted_idx = zip(*sorted([(0,None), (length, None)]+[((self.reverse_dict[idx][''][0]+self.forward_dict[idx][''][0])/2,idx) for idx in self.pairs_idx]))
     
     spacing = length/(number_of_pairs+1)
     uniform_pos =  na.arange(spacing,length,step=spacing)[:number_of_pairs]
@@ -47,6 +48,7 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
     primer_chose[left_dist<right_dist] -= 1
     
     primer_idx_chose = sorted_idx[primer_chose]
+    # primer_idx_chose may have NANs
     return primer_idx_chose
  
   def recurse_2annotate(self, n, iteration=1, prefix=''):
@@ -116,7 +118,7 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
     cur_dir = os.path.abspath(os.curdir)
     
     seq = self.ref.get_sequence(contig, start, end)
-    
+    print "#Stage1 Region Length: %d"%(length)
     if temp_tag is None:
       out_dir=CONFIG.dir['default_temp']
       temp_tag = tempfile.mktemp(prefix='', dir=out_dir)
@@ -183,17 +185,11 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
       
       print "#Stage2 AlignTime: %.4f"%(time.time()-pre_align_time)
       
-      self.pairs_idx = set(self.forward_dict.keys()).intersection(self.reverse_dict.keys())
+      for_filtered_idx = [k for k, info_dict in self.forward_dict.iteritems() if info_dict[''][0] in self.alignments_dict.viewkeys()]
+      rev_filtered_idx = [k for k, info_dict in self.reverse_dict.iteritems() if info_dict[''][0] in self.alignments_dict.viewkeys()]
+      self.pairs_idx = set(for_filtered_idx).intersection(set(rev_filtered_idx))
       self.pairs_pos = set([(self.forward_dict[idx][''][0],self.reverse_dict[idx][''][0]) for idx in self.pairs_idx])
-      
-      for pairs_pos in self.pairs_pos:
-        try:
-          assert len(self.alignments_dict[pairs_pos[0]])>0
-          assert len(self.alignments_dict[pairs_pos[1]])>0
-        except:
-          print pairs_pos
-          raise
-
+      print "#Number of Primer Pairs after BLAT: %d"%len(self.pairs_pos)
       self.check_cross_amplification(max_dist=max_cross_amp_dist)      
  
       pre_log_select_time = time.time()
@@ -226,6 +222,7 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
       annot = self.recurse_3annotate(self.selected_pairs.size)
      
     for idx, (iteration, label) in zip(self.selected_pairs, annot):
+      if na.isnan(idx): continue 
       for_info_dict = self.forward_dict[idx]
       print >>out, ">%d_%d%s_T\n%s"%(for_info_dict[''][0], iteration, label, for_info_dict['SEQUENCE'])
       rev_info_dict = self.reverse_dict[idx]

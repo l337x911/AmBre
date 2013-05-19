@@ -104,7 +104,6 @@ class PrimerDesignWorkflow(object):
       # Ensures right is a prefix match
       elif match.qseqid.startswith("RIGHT") and (is_forward or int(match.qstart)>init_tolerance):
         continue
-
       primer_pos = int(match.qseqid.split(':')[-1])
       
       # Each alignment is stored as (contig, alignment start, is_forward)

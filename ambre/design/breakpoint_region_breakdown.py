@@ -153,20 +153,17 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
       print "#Stage1 Primer3Time: %.4f"%(time.time()-pre_primer3_time)
 
       # Compress
-      map_repeat_seqs_f = defaultdict(list)
-      map_repeat_seqs_r = defaultdict(list)
-      for info_dict in self.forward_dict.itervalues():
-        map_repeat_seqs_f[info_dict['SEQUENCE']].append(info_dict[''][0]) 
-      for info_dict in self.reverse_dict.itervalues():
-        map_repeat_seqs_r[info_dict['SEQUENCE']].append(info_dict[''][0])
-      
+      map_repeat_seqs_f = dict([(info_dict['SEQUENCE'],info_dict[''][0]) for info_dict in self.forward_dict.itervalues()])
+      map_repeat_seqs_r = dict([(info_dict['SEQUENCE'],info_dict[''][0]) for info_dict in self.reverse_dict.itervalues()])
+
       pre_align_time = time.time()
       aligner_out_fpath = '%s.align.out'%temp_tag
       if not (os.path.isfile('%s.align.fa'%temp_tag) and os.path.isfile(aligner_out_fpath)):
         
         aligner_in = open('%s.align.fa'%temp_tag, 'wb')
-        primers_fa = [">LEFT:%s\n%s"%('|'.join(l),k) for k,l in map_repeat_seqs_f]
-        primers_fa += [">RIGHT:%s\n%s"%('|'.join(l),k) for k,l in map_repeat_seqs_r]
+
+        primers_fa = [">LEFT:%d\n%s"%(pos,seq) for seq,pos in map_repeat_seqs_f.iteritems()]
+        primers_fa += [">RIGHT:%d\n%s"%(pos,seq) for seq,pos in map_repeat_seqs_r.iteritems()]
 
         #primers_fa = [">LEFT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.forward_dict.itervalues()]
         #primers_fa += [">RIGHT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.reverse_dict.itervalues()]
@@ -184,15 +181,18 @@ class PrimerBinarySearchWorkflow(PrimerDesignWorkflow):
       with open(aligner_out_fpath, 'rb') as aligner_out_f:
         self.set_alignments_dict(aligner_out_f, max_align=max_alignment_count, min_align_len=min_alignment_len)
       
-      # Reverse the split
-      for k in self.alignments_dict.keys():
-        for primer_pos in map(int, k.split('|')):
-          self.alignments_dict[primer_pos] = self.alignments_dict[k]
-      
       print "#Stage2 AlignTime: %.4f"%(time.time()-pre_align_time)
-    
+      
       self.pairs_idx = set(self.forward_dict.keys()).intersection(self.reverse_dict.keys())
       self.pairs_pos = set([(self.forward_dict[idx][''][0],self.reverse_dict[idx][''][0]) for idx in self.pairs_idx])
+      
+      for pairs_pos in self.pairs_pos:
+        try:
+          assert len(self.alignments_dict[pairs_pos[0]])>0
+          assert len(self.alignments_dict[pairs_pos[1]])>0
+        except:
+          print pairs_pos
+          raise
 
       self.check_cross_amplification(max_dist=max_cross_amp_dist)      
  

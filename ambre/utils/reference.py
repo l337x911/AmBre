@@ -31,7 +31,7 @@ class Reference(object):
     Relies on .fai index (consistent with samtools faidx format)
     '''
     self.ref_fpath = fpath
-    self.fasta = open(fpath, 'rb')
+    self.fasta = None
     self.fasta_byte_offset_dict = {}
     self.index(fpath + '.fai')
     
@@ -52,23 +52,22 @@ class Reference(object):
   def set_index(self, idx_fpath):
     keys, starts, segments, bytes_in_lines, bases_in_lines = [], [], [], [], []
     
-    self.fasta.seek(0)
+    self.fasta = open(self.ref_fpath, 'rb')
+
     bases_in_line = 0
     bytes_in_line = 0
-        
-    while True:
-      prev = self.fasta.tell()
-      l = self.fasta.readline()
-      if l == '':
-        bytes_in_lines.append(bytes_in_line)
-        bases_in_lines.append(bases_in_line)
-        segments.append(prev)
-        break
+    
+    position = 0
+    prev = 0
+    for l in self.fasta:
+      prev = position
+      position += len(l)
       
-      if l[0] == '>':
+      if l[0] == '>': 
         keys.append(l.strip()[1:])
-        starts.append(self.fasta.tell())
-        segments.append(prev)
+        starts.append(position)
+        # top off previous entry
+        segments.append(prev) 
         bytes_in_lines.append(bytes_in_line)
         bases_in_lines.append(bases_in_line)
         
@@ -77,14 +76,21 @@ class Reference(object):
       else:
         bytes_in_line = max(bytes_in_line, len(l))
         bases_in_line = max(bases_in_line, len(l.strip()))
-      
-    assert len(starts) == (len(segments) - 1)
+    
+    bytes_in_lines.append(bytes_in_line)
+    bases_in_lines.append(bases_in_line)
+    segments.append(position)
+
+    self.fasta.close()
     
     out_idx_file = open(idx_fpath, 'wb')
 
     for k, start_offset, end_offset, bytes_in_line, bases_in_line in zip(keys, starts, segments[1:], bytes_in_lines[1:], bases_in_lines[1:]):
       contig_length = end_offset - start_offset
-      contig_length -= (contig_length / bytes_in_line)
+      if contig_length % bytes_in_line ==0:
+        contig_length -= (contig_length / bytes_in_line)
+      else:
+        contig_length -= 1 + ( contig_length / bytes_in_line)
       print >> out_idx_file, "\t".join([k, "%d" % contig_length, "%d" % start_offset, "%d" % bases_in_line, "%d" % bytes_in_line])
       self.fasta_byte_offset_dict[k] = (start_offset, contig_length, bases_in_line, bytes_in_line)
 
@@ -110,13 +116,15 @@ class Reference(object):
     seq_length = end - start + new_lines_e - new_lines_s
   
     assert end <= k_e
-    
-    self.fasta.seek(k_s + start + new_lines_s)
-    if rev_complement:
-      return self.fasta.read(seq_length).replace('\n', '')[::-1].translate(BASE_COMPLEMENT)
-    return self.fasta.read(seq_length).replace('\n', '')
+    with open(self.ref_fpath, 'rb') as self.fasta: 
+      self.fasta.seek(k_s + start + new_lines_s)
+      if rev_complement:
+        seq = self.fasta.read(seq_length).replace('\n', '')[::-1].translate(BASE_COMPLEMENT)
+      seq = self.fasta.read(seq_length).replace('\n', '')
+    return seq
   def close(self):
-    self.fasta.close()
+    if not self.fasta is None:
+      self.fasta.close()
 
 def test():
   r = Reference('/home/anand/data/hg/hg19/full.fa')

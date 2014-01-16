@@ -167,8 +167,9 @@ class PrimerDesignWorkflow(object):
     self.regions = []
     with open(regions_fpath, 'rb') as f:
       for l in f:
+        if l.startswith('#'): continue
         tokens = l.strip().split('\t')
-        
+         
         c,a,b, s = tokens[0], int(tokens[1]), int(tokens[2]), tokens[3]
         try:
           assert s=='forward' or s=='reverse'
@@ -487,6 +488,7 @@ class PrimerDesignWorkflow(object):
     
     colors = ['b','r']*(len(self.regions)/2+1)
     
+    bin_width = len(self.seq)/150
     for idx, ((c,a,b,s), (s_a,s_b,s_s)) in enumerate(zip(self.regions, self.regions_on_seq)):
       
       tag = "%s %s:%d-%d"%(self.is_forward_dict[s], c,a,a+b)
@@ -497,7 +499,7 @@ class PrimerDesignWorkflow(object):
         pos = r_pos
         n_pos = f_pos
         
-      ax_primer3.hist(pos[na.logical_and(pos>s_a, pos<(s_b+s_a))], bins=50, color=colors[idx], label=tag)
+      ax_primer3.hist(pos[na.logical_and(pos>s_a, pos<(s_b+s_a))], bins=(b/bin_width), color=colors[idx], label=tag)
       try:
         print pos.shape, "NPos", n_pos.shape, "SA", s_a, "SB", s_b
         wrong_primers = pos[na.logical_and(n_pos>s_a, n_pos<s_b)] 

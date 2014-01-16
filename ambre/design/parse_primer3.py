@@ -55,6 +55,36 @@ def get_primer_dict(primer_file):
       right_primers[idx][info_n] = info_v
   return left_primers, right_primers
 
+def filter_from_ambre_order(primer3_fpath, ambre_fpath):
+  with open(ambre_fpath, 'rb') as f:
+    ambre_out = map(lambda x:x.split('\t'), f.read().strip().split('\n'))
+  
+  l_ambre_seqs = set([i[3] for i in ambre_out if i[2]=='True'])
+  r_ambre_seqs = set([i[3] for i in ambre_out if i[2]=='False'])
+  
+  with open(primer3_fpath) as f:
+    l_p, r_p = get_primer_dict(f)
+  
+  nlp =  dict([(k,v) for k,v in l_p.iteritems() if v['SEQUENCE'] in l_ambre_seqs])
+  nrp =  dict([(k,v) for k,v in r_p.iteritems() if v['SEQUENCE'] in r_ambre_seqs])
+  return nlp, nrp
+
+def filter_from_breakdown_order(primer3_fpath, ambre_fpath):
+  with open(ambre_fpath, 'rb') as f:
+    t = f.read().strip().split('\n')
+    ambre_out = zip(t[0::2], t[1::2])
+    
+  
+  l_ambre_seqs = set([i[1] for i in ambre_out if i[0].endswith('_T')])
+  r_ambre_seqs = set([i[1] for i in ambre_out if i[0].endswith('_F')])
+  
+  with open(primer3_fpath) as f:
+    l_p, r_p = get_primer_dict(f)
+  
+  nlp =  dict([(k,v) for k,v in l_p.iteritems() if v['SEQUENCE'] in l_ambre_seqs])
+  nrp =  dict([(k,v) for k,v in r_p.iteritems() if v['SEQUENCE'] in r_ambre_seqs])
+  return nlp, nrp
+  
 def get_primer_sublist(fpath):
   import bisect
   l_primers, r_primers = get_primer_dict(fpath)

@@ -26,7 +26,7 @@ import numpy as na
 import shlex
 from operator import attrgetter
 import tempfile
-
+from itertools import izip
 import ambre.design.parse_primer3 as parse_primer3
 import ambre.design.sa_cost as sa_cost
 from ambre.utils import reference
@@ -42,6 +42,53 @@ BLAT_ALIGNMENT_H="match mismatch repmatch n_s qgap qgap_bases sgap tgap_bases st
 
 BlatAlignment=namedtuple('BlatAlignment', BLAT_ALIGNMENT_H)
 PSolution=namedtuple('PSolution', "param cost time primers")
+
+class Primer3FileManager(object):
+  def __init__(self, temptag, regions_on_seq, seq, primers_per_kbp):
+    self.temptag = temptag
+    self.regions = regions_on_seq
+    self.seq = seq
+    self.primers_per_kbp = primers_per_kbp
+    self.name = None
+  def exists(self):
+    for fpath in self.iter_input_fpaths():
+      if not os.path.isfile(fpath):
+        return False
+    return True
+  def remove_in(self):
+    for fpath in iter_input_fpaths():
+      os.remove(fpath)
+  def remove_out(self):
+    for fpath in iter_output_fpaths():
+      os.remove(fpath)
+
+  def _prepare_input(self, fpath, seq, forward_flag):
+    if forward_flag:
+      ok_reg = ",,%d,5"%(len(seq)-5)
+    else:
+      ok_reg = "0,5,,"
+
+    with open(fpath, 'wb') as primer3_in:
+      print >>primer3_in, "PRIMER_NUM_RETURN=%d"%((len(seq)*self.primers_per_kbp)/1000)
+
+      print >>primer3_in, "SEQUENCE_ID=pamp_workflow"
+      print >>primer3_in, "SEQUENCE_TEMPLATE=%s"%seq
+      print >>primer3_in, "SEQUENCE_PRIMER_PAIR_OK_REGION_LIST=%s"%(ok_reg)
+      print >>primer3_in, "="
+
+  def prepare_inputs(self):
+    for (p,l,fflag), fpath in izip(self.regions,self.iter_input_fpaths()):
+      self._prepare_input(fpath, self.seq[p:p+l], fflag)
+    self.name = ",".join(self.iter_input_fpaths())
+  def iter_input_fpaths(self):
+    for i in xrange(len(self.regions)):
+      yield '%s.%04d.primer3'%(self.temptag, i)
+  def iter_output_fpaths(self):
+    for i in xrange(len(self.regions)):
+      yield '%s.%04d.primer3.out'%(self.temptag, i)
+  def iter_output(self):
+    for region, fpath in izip( self.regions,self.iter_output_fpaths()):
+      yield region, fpath 
 
 class PrimerDesignWorkflow(object):
   '''
@@ -65,7 +112,8 @@ class PrimerDesignWorkflow(object):
     self.regions = None
     self.regions_on_seq = None
     self.solutions = []
-    self.forward_dict, self.reverse_dict = None, None
+    self.forward_dict = {}
+    self.reverse_dict = {}
     self.map_pos_to_primer_idx = {}
     self.is_forward_dict = {True:'forward', False:'reverse'}
     self.d = d
@@ -79,6 +127,13 @@ class PrimerDesignWorkflow(object):
     contig, original_region_a, original_region_b, original_region_orient = self.regions[region_idx]
     norm_pos = position-self.regions_on_seq[region_idx][0]
     return contig, original_region_a+norm_pos, original_region_orient
+
+  def get_original_region(self, position):
+    a,b,c = zip(*self.regions_on_seq)
+    a = na.array(a)
+    b = na.array(b)+a
+    region_idx = na.nonzero(na.logical_and(position>=a,position<b))[0][0]
+    return region_idx, self.regions[region_idx]
   
   def set_alignments_dict(self, *args, **kwargs):
     if self.aligner.endswith('blat'):
@@ -190,37 +245,43 @@ class PrimerDesignWorkflow(object):
       start = len(self.seq)
       self.seq += ref.get_sequence(c,a,a+b)
       
-      end = len(self.seq)-start
-      self.regions_on_seq.append((start, end, s))
+      region_length = len(self.seq)-start
+      assert region_length == b
+      self.regions_on_seq.append((start, region_length, s))
     
     ref.close()
+
+
+  def _get_primers(self, primer3_out, 
+                  seq_offset=0,
+                  forward_offset=0, 
+                  reverse_offset=0, 
+                  max_penalty=1.5):
     
-  def get_primer3_regions(self):
-    
-    # Note this is a hack to get primer3 to only call
-    # Left primers in forward regions and Right primers in reverse regions.
-    regions_str = []
-    for a,b,s in self.regions_on_seq:
-      r_str = ["%d"%a,"%d"%b]
-      if s:
-        r_str.extend(["%d"%len(self.seq), "0"])
-      else:
-        r_str =["%d"%a, "0"]+r_str
-      regions_str.append(','.join(r_str))
-    return ";".join(regions_str)
-  
-  def get_primers(self, primer3_out, max_penalty=1.5):
-    self.forward_dict, self.reverse_dict = parse_primer3.get_primer_dict(primer3_out)
+    forward_dict, reverse_dict = parse_primer3.get_primer_dict(primer3_out)
       
-    for primer_idx, info_dict in self.forward_dict.items():
-      if float(info_dict['PENALTY'])>max_penalty:
-        self.forward_dict.pop(primer_idx)
-    for primer_idx, info_dict in self.reverse_dict.items():
-      if float(info_dict['PENALTY'])>max_penalty:
-        self.reverse_dict.pop(primer_idx)
-          
-    self.map_pos_to_primer_idx = dict([(info_dict[''][0], (self.forward_dict, idx)) for idx, info_dict in self.forward_dict.iteritems()]
-                      +[(info_dict[''][0], (self.reverse_dict, idx)) for idx, info_dict in self.reverse_dict.iteritems()])
+    for primer_idx, info_dict in forward_dict.iteritems():
+      if float(info_dict['PENALTY'])>max_penalty: continue
+
+      info_dict[''] = (info_dict[''][0]+seq_offset, info_dict[''][1])
+      self.forward_dict[primer_idx+forward_offset] = info_dict
+      self.map_pos_to_primer_idx[info_dict[''][0]] = (self.forward_dict, primer_idx+forward_offset)
+
+    for primer_idx, info_dict in reverse_dict.iteritems():
+      if float(info_dict['PENALTY'])>max_penalty: continue
+      
+      info_dict[''] = (info_dict[''][0]+seq_offset, info_dict[''][1])
+      self.reverse_dict[primer_idx+reverse_offset] = info_dict
+      self.map_pos_to_primer_idx[info_dict[''][0]] = (self.reverse_dict, primer_idx+reverse_offset)
+
+  def get_primers(self, fm, max_penalty=1.5):
+    self.forward_dict = {}
+    self.reverse_dict = {}
+    self.map_pos_to_primer_idx = {}
+ 
+    for (start_on_seq,length_on_seq,isforward), primer3_out_fpath in fm.iter_output():
+      with open(primer3_out_fpath, 'rb') as f:
+        self._get_primers(f, seq_offset=start_on_seq, forward_offset=len(self.forward_dict), reverse_offset=len(self.reverse_dict), max_penalty=max_penalty)     
 
   def add_cross_amp_to_multiplx(self, edges_fpath):
     BAD_SCORES_STR = "-100\t-100\t-100"
@@ -229,7 +290,6 @@ class PrimerDesignWorkflow(object):
         print >>f, "%d\t%d\t%s"%(s_i, s_j, BAD_SCORES_STR)
   
   def parse_pamp_output(self, output_str):
-    
     slns = []
     for line in output_str.split('\n')[:-1]:
       sln = PSolution._make(line.split('\t'))
@@ -264,42 +324,36 @@ class PrimerDesignWorkflow(object):
       temp_tag = tempfile.mktemp(prefix='', dir=out_dir)
     
     # Get Primer3 Output
-    primer3_in, primer3_out = None, None
+    primer3_fm, primer3_out = None, None
     aligner_in, aligner_out_fpath = None, None    
     multiplx_in, multiplx_out_fpath = None, None
     pamp_out = None
     
     try:
       pre_primer3_time = time.time()
-      if not (os.path.isfile('%s.primer3'%temp_tag) and os.path.isfile('%s.primer3.out'%temp_tag)):
-        os.chdir(self.primer3_path)  
-        primer3_in = open('%s.primer3'%temp_tag, 'wb')
-        print >>primer3_in, "PRIMER_NUM_RETURN=%d"%((len(self.seq)/1000)*primers_per_kbp)
+      primer3_fm = Primer3FileManager(temp_tag, self.regions_on_seq, self.seq, primers_per_kbp)
+      if not primer3_fm.exists():
 
-        print >>primer3_in, "SEQUENCE_ID=pamp_workflow"
-        print >>primer3_in, "SEQUENCE_TEMPLATE=%s"%self.seq
-        # Note the hack to not select reverse primers and forward primers in certain regions
-        # For a reverse primer the region of left primers to choose from is "a,0"
-        # where as for forward primers the region of right primers to choose from is "len(seq),0"
-        print >>primer3_in, "SEQUENCE_PRIMER_PAIR_OK_REGION_LIST=%s"%(self.get_primer3_regions())
-        print >>primer3_in, "="
-        primer3_in.close()
-        print os.path.abspath(os.path.curdir)
-        primer3_cmd = "%s -p3_settings_file=%s %s"%(os.path.join(self.primer3_path, 'src', 'primer3_core'), self.primer3_param, primer3_in.name)
-        print primer3_cmd
-        primer3_out = open("%s.primer3.out"%temp_tag, 'wb')
-        p_primer3 = Popen(shlex.split(primer3_cmd), stdout=primer3_out, stderr=PIPE)
+        primer3_fm.prepare_inputs()
+
+        os.chdir(self.primer3_path)
+
+        for primer3_infpath, primer3_outfpath in izip(primer3_fm.iter_input_fpaths(),primer3_fm.iter_output_fpaths()):
+  
+          primer3_cmd = "%s -p3_settings_file=%s %s"%(os.path.join(self.primer3_path, 'src', 'primer3_core'), self.primer3_param, primer3_infpath)
+          print primer3_cmd
+          with open(primer3_outfpath, 'wb') as primer3_out:
+            p_primer3 = Popen(shlex.split(primer3_cmd), stdout=primer3_out, stderr=PIPE)
         
-        (primer3_out_str, primer3_err) = p_primer3.communicate()
+            (primer3_out_str, primer3_err) = p_primer3.communicate()
         
-        primer3_out.close()
         os.chdir(cur_dir)
-        
-      with open("%s.primer3.out"%temp_tag, 'rb') as primer3_out_f:
-        self.get_primers(primer3_out_f, max_penalty=max_primer_penalty)
       
+      self.get_primers(primer3_fm, max_penalty=max_primer_penalty)
+
+
       print "#Stage1 Primer3Time: %.4f"%(time.time()-pre_primer3_time)
-      
+       
       pre_align_time = time.time()
       aligner_out_fpath = '%s.align.out'%temp_tag
       if not (os.path.isfile('%s.align.fa'%temp_tag) and os.path.isfile(aligner_out_fpath)):
@@ -312,7 +366,7 @@ class PrimerDesignWorkflow(object):
         aligner_in.close()
 
         if self.aligner.endswith('blat'):
-          align_cmd = '%s -t=dna -q=dna -stepSize=2 -tileSize=11 -repMatch=1048576 -minScore=15 -noHead %s %s %s'%(self.aligner, CONFIG.param['reference_fpath'], aligner_in.name, aligner_out_fpath)
+          align_cmd = '%s -t=dna -q=dna -stepSize=2 -tileSize=8 -repMatch=1048576 -minScore=15 -noHead %s %s %s'%(self.aligner, CONFIG.param['reference_fpath'], aligner_in.name, aligner_out_fpath)
         print len(primers_fa), align_cmd
         p_align = Popen(shlex.split(align_cmd), stdout=PIPE, stderr=PIPE)
         
@@ -365,9 +419,6 @@ class PrimerDesignWorkflow(object):
           self.parse_pamp_output(pamp_out.read())
         
     finally:
-      if not primer3_in is None:
-        primer3_in.close()
-        print primer3_in.name
       if not primer3_out is None:
         primer3_out.close()
         print primer3_out.name
@@ -387,8 +438,8 @@ class PrimerDesignWorkflow(object):
         print pamp_out.name
         
       if(delete_flag):
-        os.remove(primer3_in.name)
-        os.remove(primer3_out.name)
+        primer3_fm.remove_in()
+        primer3_fm.remove_out()
         os.remove(aligner_in.name)
         os.remove(aligner_out_fpath)
         os.remove(multiplx_in.name)
@@ -413,12 +464,12 @@ class PrimerDesignWorkflow(object):
         contig_j, norm_pos_j, orientation_j = self.get_original_region_position(primer_j_dict[primer_j_idx][''][0])
         if orientation_i==orientation_j:
           continue
-        slns.append(PSolution("%d,%d"%(i,j), 
-														#cost=primer_i_dict[primer_i_idx]['PENALTY']+primer_j_dict[primer_j_idx]['PENALTY'], 
-														#cost=abs(norm_pos_i-norm_pos_j),
-														cost=abs(primer_graph.combined_primers[i]-primer_graph.combined_primers[j]),
-														time="0", 
-														primers=[[primer_graph.combined_primers[i]], [primer_graph.combined_primers[j]]]))
+        slns.append(PSolution("%d,%d"%(i,j),
+                    #cost=primer_i_dict[primer_i_idx]['PENALTY']+primer_j_dict[primer_j_idx]['PENALTY'], 
+                    #cost=abs(norm_pos_i-norm_pos_j),
+                    cost=abs(primer_graph.combined_primers[i]-primer_graph.combined_primers[j]),
+                    time="0", 
+                    primers=[[primer_graph.combined_primers[i]], [primer_graph.combined_primers[j]]]))
         
     self.solutions = sorted(slns, key=attrgetter('cost'))
     
@@ -443,29 +494,52 @@ class PrimerDesignWorkflow(object):
     if not out_fpath is None:
       out.close()
     else:
-      out.flush()      
-  def check(self, regions_fpath, temp_tag, out_fpath):
-    primer3_out_fpath, pamp_out_fpath = '%s.primer3.out'%temp_tag, '%s.sa'%temp_tag
+      out.flush()
+ 
+  def print_fasta_solutions(self, out_fpath=None, top=5):
+    n = min(top, len(self.solutions))
     
+    if out_fpath is None:
+      out = sys.stdout
+    else:
+      out = open(out_fpath, 'wb')
+
+    for i in xrange(n):
+      sln = self.solutions[i]
+      for reg in sln.primers:
+        for p in reg:
+          primer_dict, primer_idx = self.map_pos_to_primer_idx[p]
+          contig, norm_pos, orientation = self.get_original_region_position(primer_dict[primer_idx][''][0])
+          region_idx, regions = self.get_original_region(primer_dict[primer_idx][''][0])
+           
+          print >>out, ">sln-%02d-%02d_%s_%d_%s\t%.4f\n%s"%(i, region_idx, contig, norm_pos, orientation, primer_dict[primer_idx]['PENALTY'], primer_dict[primer_idx]['SEQUENCE'])
+    if not out_fpath is None:
+      out.close()
+    else:
+      out.flush()  
+
+  def check(self, regions_fpath, temp_tag, out_fpath, fasta_flag=False):
+    pamp_out_fpath = '%s.sa'%temp_tag
+
     self.set_regions(regions_fpath)
     self.set_sequence()
-    primer3_out = open(primer3_out_fpath, 'rb')
-    self.forward_dict, self.reverse_dict = parse_primer3.get_primer_dict(primer3_out)
-    primer3_out.close()
-      
-    self.map_pos_to_primer_idx = dict([(info_dict[''][0], (self.forward_dict, idx)) for idx, info_dict in self.forward_dict.iteritems()]
-                      +[(info_dict[''][0], (self.reverse_dict, idx)) for idx, info_dict in self.reverse_dict.iteritems()])
-    
-    
+
+    primer3_fm = Primer3FileManager(temp_tag, self.regions_on_seq, self.seq, 0)
+    self.get_primers(primer3_fm)
+
     with open(pamp_out_fpath, 'rb') as pamp_out:  
       self.parse_pamp_output(pamp_out.read())
-    self.print_solutions(out_fpath=out_fpath, top=15)
+    if fasta_flag:
+      self.print_fasta_solutions(out_fpath=out_fpath, top=15)
+    else:
+      self.print_solutions(out_fpath=out_fpath, top=15)
     try: 
       import matplotlib
       
       self.validate()
     except ImportError:
       pass
+
   def validate(self):
     from matplotlib import font_manager,pyplot as plt
     
@@ -548,17 +622,15 @@ def test_cross_amp(regions_fpath, temp_tag):
   w.set_regions(regions_fpath)
   w.set_sequence()
   
-  with open('%s.primer3.out'%temp_tag, 'rb') as primer3_out_f:
-    w.get_primers(primer3_out_f)
-  
+  primer3_fm = Primer3FileManager(temp_tag, w.regions_on_seq, w.seq, 0) 
+  w.get_primers(primer3_fm)
+ 
   with open('%s.align.out'%temp_tag, 'rb') as blast_out_f:
     
     w.set_alignments_dict(blast_out_f,
                           max_align=int(CONFIG.param['design_max_alignments']),
                           min_align_len=int(CONFIG.param['design_3end_len_alignment']))
   
-  for primer_pos in w.alignments_dict.iterkeys():
-    primer_dict, primer_idx = w.map_pos_to_primer_idx[primer_pos]
     
   w.check_cross_amplification(max_dist=int(CONFIG.param['design_max_cross_amp_dist']))
   
@@ -568,18 +640,22 @@ def test_cross_amp(regions_fpath, temp_tag):
     
     primer_graph = sa_cost.get_primer_graph(multiplx_out_fpath, regions_pamp, d=w.d, rho=w.rho)
     print "#Incompatible primer density: ", primer_graph.get_dimerization_density()
-  
+    print "#Primers without dimers: ", primer_graph.get_number_of_primers_without_dimers() 
   if len(w.cross_amp)>1:
-    for amp in na.array(list(w.cross_amp))[na.random.random_integers(0,len(w.cross_amp)-1,30)]:
+    cross_amp_index =  na.array(list(w.cross_amp))
+    if len(w.cross_amp)>30:
+      cross_amp_index = cross_amp_index[na.random.random_integers(0,len(w.cross_amp)-1,30)]
+    for amp in cross_amp_index:
       print "CrossAmp:", amp  
       for p in amp:
         primer_dict, primer_idx = w.map_pos_to_primer_idx[p]
         contig, norm_pos, orientation = w.get_original_region_position(primer_dict[primer_idx][''][0])
         print "%s\t%d\t%s\t%s"%(contig, norm_pos, orientation, primer_dict[primer_idx]['SEQUENCE'])
-      
+  
+       
   
   
-def check(regions_fpath, temp_tag, out_fpath):
+def check(regions_fpath, temp_tag, out_fpath, fasta_flag):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 
           primer3_param=CONFIG.param['primer3_long'], 
           aligner=CONFIG.bin['aligner'], 
@@ -587,9 +663,9 @@ def check(regions_fpath, temp_tag, out_fpath):
           d=int(CONFIG.param['design_primer_spacing']),
           rho=float(CONFIG.param['design_primer_density']))
 
-  w.check(regions_fpath, temp_tag, out_fpath)
+  w.check(regions_fpath, temp_tag, out_fpath, fasta_flag=fasta_flag)
 
-def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
+def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 
           primer3_param=CONFIG.param['primer3_long'], 
           aligner=CONFIG.bin['aligner'], 
@@ -609,8 +685,10 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
         pamp_repeats= int(CONFIG.param['design_sa_repetitions']),
         pamp_t_ms= map(float,CONFIG.param['design_sa_ms'].split(',')),
         pamp_t_bs=map(float,CONFIG.param['design_sa_bs'].split(',')))
-
-  w.print_solutions(out_fpath=out_fpath)
+  if fasta_flag:
+    w.print_fasta_solutions(out_fpath=out_fpath)
+  else:
+    w.print_solutions(out_fpath=out_fpath)
   try:
     import matplotlib
     w.validate()
@@ -620,6 +698,7 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None):
 def main(): 
   parser = argparse.ArgumentParser(prog='ambre-design.py', description='Select compatible primers covering reference region.')
   parser.add_argument('-c, --check', dest='check', action='store_const', const=check, default=None, help='checks if the temptag solution is valid')
+  parser.add_argument('-f, --fasta-out', dest='ofasta', action='store_const', const=True, default=False, help='output in fasta')
   parser.add_argument('-a, --check-align', dest='check_align', action='store_const', const=test_cross_amp, default=None, help='Checks for cross amplifications')
   
   parser.add_argument('reference', type=str, nargs=1, help='Fasta with multiple sequence entries.')
@@ -638,7 +717,7 @@ def main():
   if not args.check is None:
     try: 
       assert not args.temptag is None
-      args.check(args.regions[0], args.temptag, args.primer_fpath[0])
+      args.check(args.regions[0], args.temptag, args.primer_fpath[0], fasta_flag=args.ofasta)
     except AssertionError:
       print "No temp id prefix specified"
       sys.exit()
@@ -651,7 +730,7 @@ def main():
       sys.exit()
     
   else:
-    ambre_run(args.regions[0], args.temptag, args.primer_fpath[0])
+    ambre_run(args.regions[0], args.temptag, args.primer_fpath[0], fasta_flag=args.ofasta)
 
 if __name__=='__main__':
   main()

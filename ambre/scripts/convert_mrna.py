@@ -30,8 +30,8 @@ def test_lengths():
 
 refseq = pd.read_csv(refseq_fpath, header=0, sep='\t')
 
-print "RefSeq Valid?", has_qnames(refseq)
-print "RefGene Valid?", has_qnames(refgene)
+#print "RefSeq Valid?", has_qnames(refseq)
+#print "RefGene Valid?", has_qnames(refgene)
 
 def get_contig_name(qname):
   return refgene[refgene.qName==qname].contigs.values[0]
@@ -114,7 +114,9 @@ def ambredel_input(refid, end5, start3, w):
   print "%s\t%d\t%d\tforward"%(get_contig_name(refid), qs1,qw1)
   print "%s\t%d\t%d\treverse"%(get_contig_name(refid), qstarts[start3_idx],min(w, g['qSize']-qstarts[start3_idx]))
 
-def ambrefus_input(refid,exon_c, w, start5=False):
+orient_dict = {True:"forward", False:"reverse"}
+
+def ambrefus_input(refid,exon_c, w, start5=False, rc_flag=False):
   g = refseq[refseq.qName==refid]
   qstarts, qends, tstarts, tends, blocks = get_exons(refid)
   #exon_c, diff, v, qv  = get_closest_exon(refid,pos,start5)
@@ -124,18 +126,30 @@ def ambrefus_input(refid,exon_c, w, start5=False):
     orient = "forward"
     qv = qends[idx]
     pos = max(qv-w,0)
+    #pos = max(qv-w, qstarts[idx])
     qw = min(w,qv)
   else:
     orient = "reverse"
     qv = qstarts[idx]
     pos = qv
     qw = min(w,g['qSize']-qv)
-    
+    #qw = min(w,qends[idx]+1- qv)
+
+  orient = orient_dict[start5]
+  if rc_flag:
+    orient = orient_dict[not start5]
+
+  #print idx, exon_c, qstarts, qends, tstarts, tends, blocks 
+  tv1, tv2 = tstarts[idx], tends[idx]
+  if tv1>tv2:
+    tv1,tv2 = tv2, tv1
+
+  print "## %s\t%d\t%d\t%s_%d"%(g['tName'].values[0],tv1, tv2, g['qName'].values[0],exon_c)
   print "#", g['qName'].values, g['qSize'].values, qstarts[idx], qends[idx], tstarts[idx], tends[idx]
 
   print "%s\t%d\t%d\t%s"%(get_contig_name(refid), pos,qw, orient)
 
-W = 400
+W = 200
 # EGFR, PDGFRA, SEPT14, PTPRZ1, MET, FGFR3, TACC3, LANCL2, RP11-745C15.2
 
 #print get_closest_exon("NM_005228", "chr7", 55268106, start5=True)
@@ -149,6 +163,8 @@ ambredel_input('NM_005228', 14,15,W)
 #PDGFR
 #print_exons('NM_006206', (8,9))
 ambredel_input('NM_006206', 8,9,W)
+#EGFR exon 24
+ambrefus_input('NM_005228', 24,W, start5=True)
 #SEPT14 3 exon 3, 7, 10
 ambrefus_input("NM_207366", 3, W, start5=False)
 ambrefus_input("NM_207366", 7, W, start5=False)

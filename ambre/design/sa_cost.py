@@ -24,6 +24,7 @@ import os
 import sys
 import cStringIO as StringIO
 from multiprocessing import Pool 
+from itertools import izip
 
 def multiplx_filter_func(values, stringency=(-4.0, -8.0, -8.0)):
   s1, s2, s3 = float(values[0]), float(values[1]), float(values[2])
@@ -174,7 +175,8 @@ class PrimerGraph(object):
     #assert len(self.primers)==self.primer_graph_mat.shape[0]
     #return float(na.sum(self.primer_graph_mat))
     return float(na.sum(self.primer_graph_mat))/ (0.5*len(self.primers)*(1+len(self.primers)))
-    
+  def get_number_of_primers_without_dimers(self):
+    return na.sum(na.sum(self.primer_graph_mat, axis=0)==0)
 
   def check_primer_dimers(self, primer_list):    
     primer_idx = self.map_primers_to_idx[primer_list]
@@ -199,7 +201,7 @@ class PrimerGraph(object):
       return na.inf
   
     cost = 0
-    for is_forward, p_list, (a, b) in zip(self.region_is_forward, sorted_primers_in_regions, self.regions):
+    for is_forward, p_list, (a, b) in izip(self.region_is_forward, sorted_primers_in_regions, self.regions):
       primers_cost = na.concatenate(([a], p_list, [b]))
       
       primers_cost = (primers_cost[1:] - primers_cost[:-1]) - self.d
@@ -227,7 +229,7 @@ class PrimerGraph(object):
     # Primer Dimers are -Inf
     # wrho is -Inf if out of range of rho.
     
-    density = na.sum([self.d * float(len(p_list)) / l for l, p_list in zip(self.region_length, sorted_primers_in_regions)])
+    density = na.sum([self.d * float(len(p_list)) / l for l, p_list in izip(self.region_length, sorted_primers_in_regions)])
     
     if abs(density - self.rho - 1) > self.rho_err:
       return na.inf
@@ -238,7 +240,7 @@ class PrimerGraph(object):
       return na.inf
     
     cost = 0
-    for is_forward, p_list, (a, b) in zip(self.region_is_forward, sorted_primers_in_regions, self.regions):
+    for is_forward, p_list, (a, b) in izip(self.region_is_forward, sorted_primers_in_regions, self.regions):
       primers_cost = na.concatenate(([a], p_list, [b]))
       
       primers_cost = primers_cost[1:] - primers_cost[:-1] - self.d
@@ -256,26 +258,36 @@ class PrimerGraph(object):
     
     independent_set_flag = False
     
-    num_primers = []
-    for i, l in zip(self.primers_by_region, self.region_lengths):
-      num_primers.append(max(min(int(na.floor(((self.rho + 1) * l) / self.d)), min(len(i),6)), 1))
-    
+    #num_primers = []
+    #for i, l in izip(self.primers_by_region, self.region_lengths):
+    #  num_primers.append(max(min(int(na.floor(((self.rho + 1) * l) / self.d)), min(len(i),6)), 1))
+
+    n = len(self.region_lengths)    
+
+    num_primers = na.ones(n, dtype=na.int)
+    if n>6:
+      num_primers[random.sample(range(n), n-6)] = 0
+
     primer_indices_by_region = [range(len(r_init)) for r_init in self.primers_by_region]
-    
+    empty_arr = na.array([],dtype=na.int)
     tries = 0
     while not independent_set_flag:
-      primer_init_idx_by_region = [na.sort(random.sample(indices, primer_count)) for primer_count, indices in zip(num_primers, primer_indices_by_region)]
+      try:
+        primer_init_idx_by_region = [na.sort(random.sample(indices, primer_count)) for primer_count, indices in izip(num_primers, primer_indices_by_region)]
       
-      sorted_primers_init_by_region = [na.sort(primers[init_idx]) for primers, init_idx in zip(self.primers_by_region, primer_init_idx_by_region)]
+        sorted_primers_init_by_region = [na.sort(primers[init_idx]) if init_idx.size>0 else empty_arr for primers, init_idx in izip(self.primers_by_region, primer_init_idx_by_region)]
       
-      combined_primers = na.concatenate(sorted_primers_init_by_region)
-      independent_set_flag = not self.check_primer_dimers(combined_primers)
+        combined_primers = na.concatenate(sorted_primers_init_by_region)
+        independent_set_flag = not self.check_primer_dimers(combined_primers)
+      except:
+        print >>sys.stderr, "ERROR: Unexpected crash", tries, primer_init_idx_by_region, sorted_primers_init_by_region, combined_primers, independent_set_flag
+        raise
       tries += 1
-      if tries>10000000:
+      if tries>1000000:
         print >>sys.stderr, "ERROR: Unexpected number of attempts for finding a random initial solution."
         raise 
     curr_cost = self.adj_cost_func(sorted_primers_init_by_region)
-    
+    print curr_cost, ['-' if l.size==0 else ",".join(["%d"%i for i in l]) for l in sorted_primers_init_by_region ]
     return curr_cost, sorted_primers_init_by_region
     
   def computeSimulatedAnnealing(self, T_schedule, max_iterations=1000000000, max_age=300000, output_fpath=None):
@@ -299,7 +311,6 @@ class PrimerGraph(object):
       output_info = sys.stderr
     else:
       output_info = open(output_fpath, 'wb')
-    
     
     while iter_count < max_iterations:
       
@@ -374,8 +385,9 @@ class PrimerGraph(object):
       
       iter_count += 1
       min_cost_age += 1
-      if(iter_count % 100000 == 0):
+      if(iter_count % 5000 == 0):
         print >> output_info, "Iterations\t%010d\t%.4f\t%d\t%d" % (iter_count, time.time() - iter_clock, min_cost, curr_cost)
+        output_info.flush()
         iter_clock = time.time()
 
     print >> output_info, "TerminationClock:%.2f" % (time.time() - start_clock)
@@ -384,6 +396,37 @@ class PrimerGraph(object):
     else:
       output_info.flush()
     return min_cost, min_primer_sets, iter_count, time.time() - start_clock   
+
+
+class BasicMultiTargetPrimerGraph(PrimerGraph):
+  def __init__(self, edges_fpath, regions_fpath, region_links_fpath=''):
+    PrimerGraph.__init__(self, edges_fpath, regions_fpath)
+    self.region_links_fpath = region_links_fpath
+
+  def adj_cost_func(self, sorted_primers_in_regions, dimer_check_flag=False):
+ 
+    # Every set contains zero or more primers
+    # penalize regions independently 
+    #   if 0 cost is the length of the region
+    #   else cost is dist to boundary
+    #     if forward, to the region end or region start if reverse
+
+    combined_primers = na.concatenate(sorted_primers_in_regions)
+    
+    if dimer_check_flag and self.check_primer_dimers(combined_primers): 
+      return na.inf
+  
+    cost = 0
+    for is_forward, p_list, (a, b) in izip(self.region_is_forward, sorted_primers_in_regions, self.regions):
+     if p_list.size==0:
+       cost += b-a
+     if is_forward:
+       cost += na.sum(b-na.copy(p_list))
+     else:
+       cost += na.sum(na.copy(p_list)-a)
+    
+    return cost
+
 
 def run_simulated_annealing(graph, schedule, max_iteration, max_age, output=None):
   random.seed(os.getpid()*time.time())

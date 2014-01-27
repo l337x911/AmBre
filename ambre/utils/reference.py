@@ -120,7 +120,8 @@ class Reference(object):
       self.fasta.seek(k_s + start + new_lines_s)
       if rev_complement:
         seq = self.fasta.read(seq_length).replace('\n', '')[::-1].translate(BASE_COMPLEMENT)
-      seq = self.fasta.read(seq_length).replace('\n', '')
+      else:
+        seq = self.fasta.read(seq_length).replace('\n', '')
     return seq
   def close(self):
     if not self.fasta is None:

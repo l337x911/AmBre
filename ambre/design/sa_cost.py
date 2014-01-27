@@ -439,6 +439,13 @@ def get_primer_graph(edges_fpath,
   graph.load(multiplx_filter_func)
   return graph
 
+def get_multitarget_primer_graph(edges_fpath,
+                regions_input):
+  graph = BasicMultiTargetPrimerGraph(edges_fpath, regions_input)
+  graph.load(multiplx_filter_func)
+  return graph
+
+
 def multi_vary_temperature_schedule(graph=None,
                  t_ms=(-1, -(10 ** -1), -(10 ** -2), -(10 ** -3), -(10 ** -4)), t_bs=(10 ** 4, 10 ** 5, 10 ** 6),
                  repeats=5,

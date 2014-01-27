@@ -403,8 +403,9 @@ class PrimerDesignWorkflow(object):
       regions_pamp = ''.join(["%d\t%d\t%s\n"%(a,b,self.is_forward_dict[s]) for (a,b,s) in self.regions_on_seq])
       
       pre_pamp_time = time.time()
-      primer_graph = sa_cost.get_primer_graph(multiplx_out_fpath, regions_pamp, d=self.d, rho=self.rho)
-      
+      #primer_graph = sa_cost.get_primer_graph(multiplx_out_fpath, regions_pamp, d=self.d, rho=self.rho)
+      primer_graph = sa_cost.get_multitarget_primer_graph(multiplx_out_fpath, regions_pamp)      
+
       if not pamp_off:
         pamp_out = open('%s.sa'%temp_tag, 'wb')
       

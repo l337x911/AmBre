@@ -399,18 +399,15 @@ class PrimerGraph(object):
 
 
 class BasicMultiTargetPrimerGraph(PrimerGraph):
-  def __init__(self, edges_fpath, regions_fpath, region_links_fpath=''):
+  def __init__(self, edges_fpath, regions_fpath):
     PrimerGraph.__init__(self, edges_fpath, regions_fpath)
-    self.region_links_fpath = region_links_fpath
 
   def adj_cost_func(self, sorted_primers_in_regions, dimer_check_flag=False):
- 
     # Every set contains zero or more primers
     # penalize regions independently 
     #   if 0 cost is the length of the region
     #   else cost is dist to boundary
     #     if forward, to the region end or region start if reverse
-
     combined_primers = na.concatenate(sorted_primers_in_regions)
     
     if dimer_check_flag and self.check_primer_dimers(combined_primers): 
@@ -427,7 +424,56 @@ class BasicMultiTargetPrimerGraph(PrimerGraph):
     
     return cost
 
+class LinkMultiTargetPrimerGraph(PrimerGraph):
+  def __init__(self, edges_fpath, regions_fpath, region_links):
+    PrimerGraph.__init__(self, edges_fpath, regions_fpath)
+    self.region_links = region_links
+  def _get_amplicon_length(self, i,j):
+    is_forward_i, p_list_i, (a_i,b_i) = self.region_is_forward[i], sorted_primers_in_regions[i], self.regions[i]
+    is_forward_j, p_list_j, (a_j,b_j) = self.region_is_forward[j], sorted_primers_in_regions[j], self.regions[j]
 
+    if p_list_i.size==0:
+      l_i = b_i-a_i
+    elif is_forward_i:
+      l_i = b_i-na.max(p_list_i)
+    else:
+      l_i = na.min(p_list_i)-a_i
+
+    if p_list_j.size==0:
+      l_j = b_j-a_j
+    elif is_forward_j:
+      l_j = b_j-na.max(p_list_j)
+    else:
+      l_j = na.min(p_list_j)-a_j
+    return l_i+l_j 
+
+  def adj_cost_func(self, sorted_primers_in_regions, dimer_check_flag=False):
+    # Every set contains zero or more primers
+    # penalize regions independently 
+    #   if 0 cost is the length of the region
+    #   else cost is dist to boundary
+    #     if forward, to the region end or region start if reverse
+    combined_primers = na.concatenate(sorted_primers_in_regions)
+    
+    if dimer_check_flag and self.check_primer_dimers(combined_primers): 
+      return na.inf
+  
+    cost = 0
+    # NOT FINISHED!!!!
+    # NOT FINISHED!!!!
+    #for is_forward, p_list, (a, b) in izip(self.region_is_forward, sorted_primers_in_regions, self.regions):
+    for i,j in self.region_links: 
+     is_forward_i, p_list_i, (a_i,b_i) = self.region_is_forward[i], sorted_primers_in_regions[i], self.regions[i]
+     is_forward_j, p_list_j, (a_j,b_j) = self.region_is_forward[j], sorted_primers_in_regions[j], self.regions[j]
+
+
+     if p_list_i.size==0 or p_list_j.size==0:
+       cost += ((b_i-a_i)-(b_j-a_j))**2
+     
+     p_l_i = b_i-na.copy(p_list_i) if is_forward_i else na.copy(p_list_i)-a_i
+     p_l_j = b_j-na.copy(p_list_j) if is_forward_j else na.copy(p_list_j)-a_j
+    
+    return cost
 def run_simulated_annealing(graph, schedule, max_iteration, max_age, output=None):
   random.seed(os.getpid()*time.time())
   return graph.computeSimulatedAnnealing(schedule, max_iteration, max_age, output)
@@ -440,8 +486,12 @@ def get_primer_graph(edges_fpath,
   return graph
 
 def get_multitarget_primer_graph(edges_fpath,
-                regions_input):
-  graph = BasicMultiTargetPrimerGraph(edges_fpath, regions_input)
+                regions_input, region_links=None):
+  if region_links is None or len(region_links)==0:
+    graph = BasicMultiTargetPrimerGraph(edges_fpath, regions_input)
+  else:
+    graph = LinkMultiTargetPrimerGraph(edges_fpath, regions_input, region_links)
+
   graph.load(multiplx_filter_func)
   return graph
 

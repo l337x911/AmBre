@@ -1,7 +1,7 @@
 from ambre.utils import reference
 
 r = reference.Reference('/media/T01/data/hg/hg19/human2.rna.fna')
-input_fpath = "/home/anand/Projects/ambre/gbm/gbm-rna-screen_cDNA03.txt"
+input_fpath = "/home/anand/Projects/ambre/gbm/gbm-rna-screen_cDNA04.txt"
 
 rc_dict = {'forward':False, 'reverse':True}
 

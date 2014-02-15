@@ -311,7 +311,8 @@ class PrimerDesignWorkflow(object):
         max_alignment_count=10,
         min_alignment_len=18,
         pamp_max_iterations= 100000000,pamp_repeats= 3,
-        pamp_t_ms= (-1,-(10**-1),-(10**-2),-(10**-3)), pamp_t_bs=(10**4,10**5,10**6)):
+        pamp_t_ms= (-1,-(10**-1),-(10**-2),-(10**-3)), pamp_t_bs=(10**4,10**5,10**6),
+        region_links_fpath=None):
     cur_dir = os.path.abspath(os.curdir)
     self.set_regions(regions_fpath)
     self.set_sequence()
@@ -359,7 +360,7 @@ class PrimerDesignWorkflow(object):
       if not (os.path.isfile('%s.align.fa'%temp_tag) and os.path.isfile(aligner_out_fpath)):
         
         aligner_in = open('%s.align.fa'%temp_tag, 'wb')
-        primers_fa = [">LEFT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.forward_dict.itervalues()]
+        primers_fa = [">LEFT:%d\n%s"%(info_dict[''],info_dict['SEQUENCE']) for info_dict in self.forward_dict.itervalues()]
         primers_fa += [">RIGHT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.reverse_dict.itervalues()]
         
         print >>aligner_in, "\n".join(primers_fa)
@@ -403,8 +404,17 @@ class PrimerDesignWorkflow(object):
       regions_pamp = ''.join(["%d\t%d\t%s\n"%(a,b,self.is_forward_dict[s]) for (a,b,s) in self.regions_on_seq])
       
       pre_pamp_time = time.time()
-      #primer_graph = sa_cost.get_primer_graph(multiplx_out_fpath, regions_pamp, d=self.d, rho=self.rho)
-      primer_graph = sa_cost.get_multitarget_primer_graph(multiplx_out_fpath, regions_pamp)      
+      if region_links_fpath is None:
+        primer_graph = sa_cost.get_primer_graph(multiplx_out_fpath, regions_pamp, d=self.d, rho=self.rho)
+      else:
+        with open(region_links_fpath) as f:
+          region_links = []
+          for line in f:
+            if line.startswith('#'): continue
+            tokens = line.strip().split('\t')
+            region_links.append((int(tokens[0]), int(tokens[1])))
+            
+        primer_graph = sa_cost.get_multitarget_primer_graph(multiplx_out_fpath, regions_pamp, region_links=region_links)      
 
       if not pamp_off:
         pamp_out = open('%s.sa'%temp_tag, 'wb')
@@ -653,9 +663,6 @@ def test_cross_amp(regions_fpath, temp_tag):
         contig, norm_pos, orientation = w.get_original_region_position(primer_dict[primer_idx][''][0])
         print "%s\t%d\t%s\t%s"%(contig, norm_pos, orientation, primer_dict[primer_idx]['SEQUENCE'])
   
-       
-  
-  
 def check(regions_fpath, temp_tag, out_fpath, fasta_flag):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 
           primer3_param=CONFIG.param['primer3_long'], 
@@ -666,7 +673,7 @@ def check(regions_fpath, temp_tag, out_fpath, fasta_flag):
 
   w.check(regions_fpath, temp_tag, out_fpath, fasta_flag=fasta_flag)
 
-def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False):
+def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False, region_links_fpath=None):
   w = PrimerDesignWorkflow(primer3_path=CONFIG.dir['primer3'], 
           primer3_param=CONFIG.param['primer3_long'], 
           aligner=CONFIG.bin['aligner'], 
@@ -677,6 +684,7 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False):
   w.run(regions_fpath,
         delete_flag=(CONFIG.param['cleanup_flag']=="True"),
         temp_tag=temp_tag,
+        pamp_off=False,
         primers_per_kbp=int(CONFIG.param['design_primer3_primers_per_kbp']),
         max_primer_penalty=float(CONFIG.param['design_max_primer3_penalty']),
         max_cross_amp_dist=int(CONFIG.param['design_max_cross_amp_dist']),
@@ -685,7 +693,8 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False):
         pamp_max_iterations= int(CONFIG.param['design_sa_max_iterations']),
         pamp_repeats= int(CONFIG.param['design_sa_repetitions']),
         pamp_t_ms= map(float,CONFIG.param['design_sa_ms'].split(',')),
-        pamp_t_bs=map(float,CONFIG.param['design_sa_bs'].split(',')))
+        pamp_t_bs=map(float,CONFIG.param['design_sa_bs'].split(',')),
+        region_links_fpath=region_links_fpath)
   if fasta_flag:
     w.print_fasta_solutions(out_fpath=out_fpath)
   else:
@@ -695,6 +704,7 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False):
     w.validate()
   except ImportError:
     pass
+  return w
 
 def main(): 
   parser = argparse.ArgumentParser(prog='ambre-design.py', description='Select compatible primers covering reference region.')
@@ -708,6 +718,7 @@ def main():
   parser.add_argument('temptag', type=str, nargs='?', default=None, help='Prefix for the run id / Directory to store Temps of a run id')
   parser.add_argument('-o, --primers-out', type=str, nargs=1, default=[None], dest="primer_fpath", help='Output primers to tab-delimited file. Default is to output to STDOUT')
   parser.add_argument('--config', type=str, nargs=1, default=None, dest="config_fpath", help='Update parameters in default config file with new config file.')
+  parser.add_argument('-r, --region-links', type=str, nargs=1, default=None, dest="region_links_fpath", help='Linked regions for rna targeting')
    
   args = parser.parse_args()
   
@@ -731,7 +742,11 @@ def main():
       sys.exit()
     
   else:
-    ambre_run(args.regions[0], args.temptag, args.primer_fpath[0], fasta_flag=args.ofasta)
+    region_links_fpath = args.region_links_fpath[0] if not args.region_links_fpath is None else args.region_links_fpath
+    if not region_links_fpath is None:
+      assert os.path.isfile(region_links_fpath)
+
+    ambre_run(args.regions[0], args.temptag, args.primer_fpath[0], fasta_flag=args.ofasta, region_links_fpath=region_links_fpath)
 
 if __name__=='__main__':
   main()

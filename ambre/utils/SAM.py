@@ -1,19 +1,7 @@
 '''
-#  ambre.test.SAM.py
-#
-#  Copyright March 2013 by Anand D. Patel
-#
-#  This program is free software; you may redistribute it and/or modify its
-#  under the terms of the GNU General Public License as published by the Free
-#  Software Foundation; either version 2 of the License or
-#  any later version.
-#
-#  This program is distributed in the hope that it will be useful, but
-#  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-#  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-#  for more details.
-#
-#  For any other inquiries send an email to: Anand D. Patel (adp002@ucsd.edu)
+Created on Mar 24, 2011
+
+@author: anand
 '''
 
 from collections import namedtuple
@@ -68,9 +56,12 @@ class SAMParser(object):
     else:
       self.file = open(sam_fpath, 'rb')
     return iter(self)
-  
-  def parse_string(self, sam_read_str):
-    
+
+  def parse_file(self, sam_file):
+    self.file = sam_file
+    return iter(self)  
+
+  def parse_string(self, sam_read_str):    
     self.file = iter(sam_read_str.split('\n')[:-1])
     return iter(self)    
 

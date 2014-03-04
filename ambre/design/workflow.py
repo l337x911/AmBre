@@ -360,7 +360,7 @@ class PrimerDesignWorkflow(object):
       if not (os.path.isfile('%s.align.fa'%temp_tag) and os.path.isfile(aligner_out_fpath)):
         
         aligner_in = open('%s.align.fa'%temp_tag, 'wb')
-        primers_fa = [">LEFT:%d\n%s"%(info_dict[''],info_dict['SEQUENCE']) for info_dict in self.forward_dict.itervalues()]
+        primers_fa = [">LEFT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.forward_dict.itervalues()]
         primers_fa += [">RIGHT:%d\n%s"%(info_dict[''][0],info_dict['SEQUENCE']) for info_dict in self.reverse_dict.itervalues()]
         
         print >>aligner_in, "\n".join(primers_fa)
@@ -684,7 +684,7 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False, r
   w.run(regions_fpath,
         delete_flag=(CONFIG.param['cleanup_flag']=="True"),
         temp_tag=temp_tag,
-        pamp_off=False,
+        pamp_off=True,
         primers_per_kbp=int(CONFIG.param['design_primer3_primers_per_kbp']),
         max_primer_penalty=float(CONFIG.param['design_max_primer3_penalty']),
         max_cross_amp_dist=int(CONFIG.param['design_max_cross_amp_dist']),
@@ -695,15 +695,15 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False, r
         pamp_t_ms= map(float,CONFIG.param['design_sa_ms'].split(',')),
         pamp_t_bs=map(float,CONFIG.param['design_sa_bs'].split(',')),
         region_links_fpath=region_links_fpath)
-  if fasta_flag:
-    w.print_fasta_solutions(out_fpath=out_fpath)
-  else:
-    w.print_solutions(out_fpath=out_fpath)
-  try:
-    import matplotlib
-    w.validate()
-  except ImportError:
-    pass
+  #if fasta_flag:
+  #  w.print_fasta_solutions(out_fpath=out_fpath)
+  #else:
+  #  w.print_solutions(out_fpath=out_fpath)
+  #try:
+  #  import matplotlib
+  #  w.validate()
+  #except ImportError:
+  #  pass
   return w
 
 def main(): 

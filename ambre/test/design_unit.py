@@ -57,7 +57,7 @@ class TestDesignWorkflow(unittest.TestCase):
     w.run(ex_regions,
         delete_flag=(CONFIG.param['cleanup_flag']=="True"),
         temp_tag=ex_temp,
-        primers_per_bp=int(CONFIG.param['design_primer3_primers_per_kbp']),
+        primers_per_kbp=int(CONFIG.param['design_primer3_primers_per_kbp']),
         max_primer_penalty=float(CONFIG.param['design_max_primer3_penalty']),
         max_cross_amp_dist=int(CONFIG.param['design_max_cross_amp_dist']),
         max_alignment_count=int(CONFIG.param['design_max_alignments']),

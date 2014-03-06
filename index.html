@@ -32,21 +32,24 @@
       <section>
         <h1></h1>
 
-<h1>AmBre: Primer designing and sequence analysis for amplifying breakpoints.</h1>
+<h1>
+<a name="ambre-primer-designing-and-sequence-analysis-for-amplifying-breakpoints" class="anchor" href="#ambre-primer-designing-and-sequence-analysis-for-amplifying-breakpoints"><span class="octicon octicon-link"></span></a>AmBre: Primer designing and sequence analysis for amplifying breakpoints.</h1>
 
 <p>Developed by Anand D. Patel in Vineet Bafna's lab at University of California, San Diego
 patel [dot] anandd [at] gmail [dot] com</p>
 
-<p>AmBre is composed of two computational parts. A) Primer Designing
-B) Long read sequence analysis.::</p>
+<p>AmBre is composed of two parts. A) Primer Designing
+B) Long read sequence analysis.</p>
 
-<pre><code>python ambre_design.py &lt;reference.fasta&gt; &lt;regions.txt&gt; [&lt;temptag&gt;]
-python ambre_analyze.py &lt;reference.fasta&gt; &lt;contig&gt; &lt;mapped_reads.sam&gt; [&lt;temptag&gt;]
+<pre><code>ambre_design &lt;reference.fasta&gt; &lt;regions.txt&gt; [&lt;temptag&gt;]
+ambre_analyze &lt;reference.fasta&gt; &lt;contig&gt; &lt;mapped_reads.sam&gt; [&lt;temptag&gt;]
 </code></pre>
 
-<h1>Installing</h1>
+<h1>
+<a name="installing" class="anchor" href="#installing"><span class="octicon octicon-link"></span></a>Installing</h1>
 
-<h2>Software Requirements</h2>
+<h2>
+<a name="software-requirements" class="anchor" href="#software-requirements"><span class="octicon octicon-link"></span></a>Software Requirements</h2>
 
 <p>AmBre requires Python 2.7.x and numpy</p>
 
@@ -56,79 +59,103 @@ python ambre_analyze.py &lt;reference.fasta&gt; &lt;contig&gt; &lt;mapped_reads.
 <li><p>Primer3 Version 2.3.0 <a href="http://sourceforge.net/projects/primer3/">http://sourceforge.net/projects/primer3/</a></p></li>
 <li><p>Blat Version 34x12 <a href="http://hgdownload.cse.ucsc.edu/admin/exe/">http://hgdownload.cse.ucsc.edu/admin/exe/</a></p></li>
 <li><p>Multiplx Version 1.2 <a href="http://bioinfo.ut.ee/?page_id=167">http://bioinfo.ut.ee/?page_id=167</a></p></li>
-</ul><p>Sequence analysis using PacBio requires BLASR and SMRT pipe.</p>
+</ul><p>Sequence analysis requires PacBio's BLASR and SMRT pipe.</p>
 
 <ul>
 <li>BLASR <a href="https://github.com/PacificBiosciences/blasr">https://github.com/PacificBiosciences/blasr</a>
 </li>
 <li>PacBio SMRT-Analysis <a href="https://github.com/PacificBiosciences/SMRT-Analysis">https://github.com/PacificBiosciences/SMRT-Analysis</a>
 </li>
-</ul><h2>Installing AmBre</h2>
+</ul><h2>
+<a name="installing-ambre" class="anchor" href="#installing-ambre"><span class="octicon octicon-link"></span></a>Installing AmBre</h2>
 
-<p>Download the tar or zip ball and install using the setup.py script. ::</p>
+<p>AmBre can be run from source or installed.</p>
 
-<pre><code>python setup.py install
+<p>Download the tar or zip ball and install using the setup.py script.</p>
+
+<pre><code>    python setup.py install
 </code></pre>
 
 <p>To configure the above binary dependencies, edit "ambre.conf" file. The config file
-is located with ::</p>
+is located with</p>
 
-<pre><code>python ambre_test.py -c
+<pre><code>    ambre_test -c
 </code></pre>
 
-<p>Edit the file paths primer3_dir, aligner_bin, and multiplx to point to the correct
-dependency folder (primer3) or binary (blat and multiplx). In the config
-file specify number of threads and a temp directory to store intermediate files.
- Note, user-specific  config files can be used by running any module with the --config argument. </p>
+<p>Edit the file paths for primer3_dir, aligner_bin, and multiplx to locate the dependencies.
+For primer3_dir set the file path to the directory containing primer3_core.
+ In the config file specify number of threads and a temp directory to store intermediate files.
+ Note, user-specific config files can be used by running any module with the --config argument.</p>
 
 <p>To verify the installation/configuration is correct and
  run a small test case for AmBre-design and AmBre-analyze (takes ~5min). ::</p>
 
-<pre><code>python ambre_test.py
+<pre><code>    ambre_test
 </code></pre>
 
 <p>If all is well, continue to usage.</p>
 
+<p>Alternatively, to run from source directory use ::</p>
+
+<pre><code>    python -m ambre.test.install_unit -c
+    python -m ambre.test.install_unit
+</code></pre>
+
 <h1></h1>
 
-<h1>AmBre-design Usage</h1>
+<h1>
+<a name="ambre-design-usage" class="anchor" href="#ambre-design-usage"><span class="octicon octicon-link"></span></a>AmBre-design Usage</h1>
 
-<h1>Description</h1>
+<h1>
+<a name="description" class="anchor" href="#description"><span class="octicon octicon-link"></span></a>Description</h1>
 
 <p>AmBre-design designs an assay to detect structural variations. Given input
 regions where one expects breakpoints for a particular structural variation
 (SV), AmBre-design finds primers uniformly tiled across the regions to reliably
 amplify DNA harboring the structural variation with PCR.</p>
 
-<p>Each structural variation is a rearrangement of a reference DNA segments to
+<p>Each structural variation is a rearrangement of reference DNA segments to
 produce a novel adjacency in the donor sample. However, it is possible to know
-that a SV occurs, without knowing the exact boundaries of the rearranged
+that a SV occurs without knowing the exact boundaries of the rearranged
 reference segments. In PCR, a forward primer (DNA sequence) designed to the
 left and a reverse primer (reverse complement DNA sequence) designed to the
-right of the donor sample adjacency would reproduce DNA harboring the SV. PCR
-is only capable of reproducing a limited DNA length, so primers can only be
-designed a certain distance away from the donor adjacency. Using multiple
+right of the donor sample adjacency would replicate DNA harboring the SV. PCR
+is only capable of reproducing a limited DNA length, so primers must be
+designed within a certain distance of the donor adjacency. Using multiple
 forward primers and reverse primers across a breakpoint region ensures that
 some forward and reverse primer appear within an amplifiable distance around
 the donor sample adjacency.</p>
 
 <p>See Patel et al. (submitted) for details.</p>
 
-<h1>To Run</h1>
+<h1>
+<a name="to-run" class="anchor" href="#to-run"><span class="octicon octicon-link"></span></a>To Run</h1>
 
 <p>Designing requires a reference sequence (fasta format) and a set of forward and
 reverse intervals to select primers from. The  is a tab-delimited
-file having intervals in rows and columns as contig name, interval start,
-interval end, type (True for forward, False if reverse). See
-"examples/regions.test" for an example regions file.  If specified, resulting
+file specifies these intervals as rows::</p>
+
+<pre><code>&lt;contig name&gt;\t&lt;interval start&gt;\t&lt;interval length&gt;\t&lt;orientation&gt;
+...
+...
+</code></pre>
+
+<p>where orientation is "forward" for forward or "reverse" if reverse.
+See "examples/regions.test" for an example regions file.  If specified, resulting
 primer designs are given in .out. </p>
 
-<pre><code>python ambre_design.py &lt;reference.fasta&gt; &lt;regions.txt&gt; [&lt;temptag&gt;]
+<pre><code>ambre_design &lt;reference.fasta&gt; &lt;regions.txt&gt; [&lt;temptag&gt;]
+</code></pre>
+
+<p>or from source::</p>
+
+<pre><code>python -m ambre.design.workflow &lt;reference.fasta&gt; &lt;regions.txt&gt; [&lt;temptag&gt;]
 </code></pre>
 
 <p>Parameters are defined in the the config file "ambre.conf". A user-defined
-config file can be used with the "--config" argument.
-Primer designing involves numerous parameters to ensure primers are viable for
+config file can be used with the "--config" argument.</p>
+
+<p>Primer designing involves numerous parameters to ensure primers are viable for
 PCR. AmBre requires primers to be compatible with one another and evenly tile
 supposed regions. Specifying too large or too many regions requires more primers
 and leads to unreliable PCR. See below for fine-tuning parameters.</p>
@@ -141,10 +168,25 @@ intermediate files.</p>
 <p>For example, to reprint primer solutions and generate a summary figure for
 primer locations on input regions using temptag.</p>
 
-<pre><code>python ambre_design.py -c &lt;reference.fasta&gt; &lt;regions.txt&gt; &lt;temptag&gt;
+<pre><code>ambre_design -c &lt;reference.fasta&gt; &lt;regions.txt&gt; &lt;temptag&gt;
 </code></pre>
 
-<h1>Parameters</h1>
+<p>or from source::</p>
+
+<pre><code>python -m ambre.design.workflow -c &lt;reference.fasta&gt; &lt;regions.txt&gt; &lt;temptag&gt;
+</code></pre>
+
+<p>The primer design output is::</p>
+
+<pre><code>&lt;design cost&gt;\t&lt;time seconds&gt;\t&lt;sa parameters&gt;
+&lt;contig&gt;\t&lt;position on contig&gt;\t&lt;is_forward&gt;\t&lt;primer sequence&gt;\t&lt;primer3 score&gt;
+...
+...
+=
+</code></pre>
+
+<h1>
+<a name="parameters" class="anchor" href="#parameters"><span class="octicon octicon-link"></span></a>Parameters</h1>
 
 <p>In the config file, modifying the following parameters
 changes the primer designing task.</p>
@@ -164,19 +206,20 @@ spacing. See Patel et al. (submitted) for details. </p>
 
 <p>Candidate primer generation is performed with Primer3 (Rozen et al. 2000)
 and the primer3 parameters file for long range PCR 
-used in Patel et al. (submitted) is listed in the ambre/data directory.
+used in Patel et al. (submitted) is listed in the "ambre/data" directory.
 Another primer3 parameter file can be used by adding the following
 line to the config file.</p>
 
 <pre><code>primer3_long_p=/&lt;file&gt;/&lt;path&gt;/&lt;primer3&gt;/&lt;parameters.txt&gt;
 </code></pre>
 
-<h2>Fine-tune design parameters</h2>
+<h2>
+<a name="fine-tune-design-parameters" class="anchor" href="#fine-tune-design-parameters"><span class="octicon octicon-link"></span></a>Fine-tune design parameters</h2>
 
 <p>The number of candidate primers to request from primer3
 per kilobase</p>
 
-<pre><code>design_primer3_primers_per_bp_p=50
+<pre><code>design_primer3_primers_per_kbp_p=50
 </code></pre>
 
 <p>Filtering for primer3 penalty criteria</p>
@@ -189,9 +232,11 @@ per kilobase</p>
 
 <h1></h1>
 
-<h1>AmBre-analyze Usage</h1>
+<h1>
+<a name="ambre-analyze-usage" class="anchor" href="#ambre-analyze-usage"><span class="octicon octicon-link"></span></a>AmBre-analyze Usage</h1>
 
-<h1>Description</h1>
+<h1>
+<a name="description-1" class="anchor" href="#description-1"><span class="octicon octicon-link"></span></a>Description</h1>
 
 <p>Analyzes Pacifc Biosciences amplicon resequencing data where amplicons contain
 structural variations (SV). AmBre-analyze clusters reads that support the same
@@ -204,7 +249,8 @@ approach similar to Sindi et al. (2009). d) breakpoint and consensus sequence
 refinement. 
 See Patel et al. (submitted) for details.</p>
 
-<h1>To Run </h1>
+<h1>
+<a name="to-run-" class="anchor" href="#to-run-"><span class="octicon octicon-link"></span></a>To Run </h1>
 
 <p>AmBre-analyze requires a local alignment file (hard-clipped SAM
 format) with the corresponding reference file (fasta format) and contig name.
@@ -216,7 +262,12 @@ in ".fasta".</p>
 
 <pre><code>/blasr/alignment/bin/blasr aligned_reads.bas.h5 &lt;reference.fasta&gt; -clipping hard -sam -out &lt;aligned_reads_h5.sam&gt;
 
-python ambre_analyze.py &lt;reference.fasta&gt; &lt;contig&gt; &lt;aligned_reads.sam&gt; [&lt;temptag&gt;]
+ambre_analyze &lt;reference.fasta&gt; &lt;contig&gt; &lt;aligned_reads.sam&gt; [&lt;temptag&gt;]
+</code></pre>
+
+<p>or from source::</p>
+
+<pre><code>python -m ambre.analyze.workflow &lt;reference.fasta&gt; &lt;contig&gt; &lt;aligned_reads.sam&gt; [&lt;temptag&gt;]
 </code></pre>
 
 <p>The output ".bp" has each breakpoint as an entry with the following form ::</p>
@@ -229,7 +280,7 @@ python ambre_analyze.py &lt;reference.fasta&gt; &lt;contig&gt; &lt;aligned_reads
 </code></pre>
 
 <p>The next step is to perform amplicon refinement using PacBio Amplicon
-Resequencing Protocol.  Using SMRT-Analysis 4.0, call consensus sequencing
+Resequencing Protocol.  Using SMRT-Analysis 2.1, call consensus sequencing
 using the estimated amplicon ".fasta" as the reference and the entire
 read set.</p>
 
@@ -241,7 +292,8 @@ parameters.</p>
 specify temptag as a directory or directory along with a prefix expected for
 AmBre-analyze (can be the same prefix as AmBre-design) intermediate files. </p>
 
-<h2>Dealing with amplicons with multiple breaks</h2>
+<h2>
+<a name="dealing-with-amplicons-with-multiple-breaks" class="anchor" href="#dealing-with-amplicons-with-multiple-breaks"><span class="octicon octicon-link"></span></a>Dealing with amplicons with multiple breaks</h2>
 
 <p>If independent breakpoints found in the previous section in AmBre-analyze
 belong to the same amplicon, then annotate the breakpoint headers in the
@@ -254,7 +306,8 @@ belong to the same amplicon, then annotate the breakpoint headers in the
 <p>The new ".fasta" file will have updated amplicon sequences containing
 multiple breaks.</p>
 
-<h1>Parameters</h1>
+<h1>
+<a name="parameters-1" class="anchor" href="#parameters-1"><span class="octicon octicon-link"></span></a>Parameters</h1>
 
 <p>In the config file, modifying the following parameters
 changes the sequence analysis task. See Patel et al. (submitted) for details.</p>
@@ -284,7 +337,7 @@ analyze_default_segment_p=6500
 </code></pre>
       </section>
       <footer>
-        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+        <p><small>Hosted on <a href="http://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
       </footer>
     </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->

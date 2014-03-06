@@ -74,6 +74,6 @@ Usage
 
 AmBre-design and AmBre-analyze are fairly independent.
 
-For AmBre-design see [design usage](USEAGE-DESIGN.md) for details.
-For AmBre-analyze see [analyze usage](USEAGE-ANALYZE.md) for details.
+For AmBre-design see [design usage](USAGE-DESIGN.md) for details.
+For AmBre-analyze see [analyze usage](USAGE-ANALYZE.md) for details.
 

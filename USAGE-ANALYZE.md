@@ -49,7 +49,7 @@ The output "<temptag>.bp" has each breakpoint as an entry with the following for
 	=
 
 The next step is to perform amplicon refinement using PacBio Amplicon
-Resequencing Protocol.  Using SMRT-Analysis 4.0, call consensus sequencing
+Resequencing Protocol.  Using SMRT-Analysis 2.1, call consensus sequencing
 using the estimated amplicon "<temptag>.fasta" as the reference and the entire
 read set.
 

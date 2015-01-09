@@ -1,0 +1,9 @@
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_01.txt /home/anand/Projects/ambre/na12878p/hic_het_01_links.txt /home/anand/Projects/ambre/na12878p/hic_het_01.a01.clean.fa A
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_02.txt /home/anand/Projects/ambre/na12878p/hic_het_02_links.txt /home/anand/Projects/ambre/na12878p/hic_het_02.a02.clean.fa B
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_03.txt /home/anand/Projects/ambre/na12878p/hic_het_03_links.txt /home/anand/Projects/ambre/na12878p/hic_het_03.a03.clean.fa C 1
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_04.txt /home/anand/Projects/ambre/na12878p/hic_het_04_links.txt /home/anand/Projects/ambre/na12878p/hic_het_04.a04.clean.fa D
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_05.txt /home/anand/Projects/ambre/na12878p/hic_het_05_links.txt /home/anand/Projects/ambre/na12878p/hic_het_05.a05.clean.fa E 1
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_06.txt /home/anand/Projects/ambre/na12878p/hic_het_06_links.txt /home/anand/Projects/ambre/na12878p/hic_het_06.a06.clean.fa F 1
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_07.txt /home/anand/Projects/ambre/na12878p/hic_het_07_links.txt /home/anand/Projects/ambre/na12878p/hic_het_07.a07.clean.fa G 2
+#python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_08.txt /home/anand/Projects/ambre/na12878p/hic_het_08_links.txt /home/anand/Projects/ambre/na12878p/hic_het_08.a08.clean.fa H
+python -m ambre.design.summary_links /home/anand/Projects/ambre/na12878p/hic_het_09.txt /home/anand/Projects/ambre/na12878p/hic_het_09_links.txt /home/anand/Projects/ambre/na12878p/hic_het_09.a09.clean.fa H

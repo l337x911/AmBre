@@ -51,7 +51,7 @@ class Primer3FileManager(object):
     self.primers_per_kbp = primers_per_kbp
     self.name = None
   def exists(self):
-    for fpath in self.iter_input_fpaths():
+    for fpath in self.iter_output_fpaths():
       if not os.path.isfile(fpath):
         return False
     return True
@@ -347,7 +347,6 @@ class PrimerDesignWorkflow(object):
             p_primer3 = Popen(shlex.split(primer3_cmd), stdout=primer3_out, stderr=PIPE)
         
             (primer3_out_str, primer3_err) = p_primer3.communicate()
-        
         os.chdir(cur_dir)
       
       self.get_primers(primer3_fm, max_penalty=max_primer_penalty)

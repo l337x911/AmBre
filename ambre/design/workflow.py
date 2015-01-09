@@ -26,7 +26,7 @@ import numpy as na
 import shlex
 from operator import attrgetter
 import tempfile
-from itertools import izip
+from itertools import izip, izip_longest
 import ambre.design.parse_primer3 as parse_primer3
 import ambre.design.sa_cost as sa_cost
 from ambre.utils import reference
@@ -173,49 +173,43 @@ class PrimerDesignWorkflow(object):
 
     
   def check_cross_amplification(self, max_dist=20000):
+    self.cross_amp = set()
     
     alignments = []
     for primer_pos, v in self.alignments_dict.iteritems():
-      primer_poss = [primer_pos]*len(v)
       c,a,s = zip(*v)
-      alignments.extend(zip(c,a,s,primer_poss))
+      alignments.extend(izip_longest(a,c,s,[], fillvalue=primer_pos))
     
     alignments.sort()
     
-    chrs, pos, orient, primer_pos = zip(*alignments)
+    pos, contigs, orient, primer_pos = zip(*alignments)
     
-    primer_pos = na.array(primer_pos)
-    chrs_x, chrs_y = na.meshgrid(chrs, chrs)
-    chrs_eq = chrs_x==chrs_y
-    chrs_x, chrs_y = None, None
-    
-    orient_x,orient_y = na.meshgrid(orient, orient)
-    orient_fr = orient_x==na.logical_not(orient_y)
-    orient_x, orient_y = None, None
-    
-    pos = na.array(pos, dtype=na.int32)
-    pos_x,pos_y = na.meshgrid(pos, pos)
-    
-    # Filter by minimum distance.
-    # And if orientation is forward/reverse
-    # Amps is [Alignments i X Alignments j ]
-    amps = na.logical_and(na.logical_and(na.abs(pos_x-pos_y)<max_dist, 
-                      na.logical_and(orient_fr, pos_x<pos_y)), # Forward reverse if one position is less than the other and is forward, while the other is reverse              
-              chrs_eq)
-    
-    # Convert each alignment back to their original primer_pos
-    # [ Primers i X Primers j]
-    
-    self.cross_amp = set()
-    primers_i, primers_j = na.nonzero(amps)
-    if len(primers_i)==0:
-      print "#Number of Cross Amplifications 0"
-      return
-    for i,j in zip(primer_pos[primers_i], primer_pos[primers_j]):
-      # Note that if multiple alignments of a single primer generate a unique amplicon,
-      # then i==j and is still included as "cross amplification"
-      self.cross_amp.add((i,j))
-    
+    n = len(alignments)
+    fwd = na.zeros(n, dtype=na.int)
+    for i in xrange(n):
+      # fwd[i] is pos[j] such that positions j+1, ... are more than max_dist from pos[i]
+      for j in xrange(max(i,fwd[i-1]),n):
+        if pos[j]-pos[i]>max_dist:
+          fwd[i] = j-1
+          break
+
+      # Check for cross amp between positions within max_dist
+
+      # reverse alignment at pos[i] cannot initiate PCR
+      # with forward/reverse alignment at pos[j]
+      if not orient[i]: continue
+
+      for j in xrange(i,fwd[i]+1):
+        # aln j must be reverse to initiate PCR
+        if orient[j]: continue
+        # also pos need to be on the same contig
+        if contigs[i]==contigs[j]:
+          ppi,ppj = primer_pos[i],primer_pos[j]
+          if ppi<ppj:
+            self.cross_amp.add((ppi,ppj))
+          else:
+            self.cross_amp.add((ppj,ppi))
+
     print "#Number of Cross Amplifications %d"%len(self.cross_amp)
     
   def set_regions(self, regions_fpath):
@@ -543,12 +537,12 @@ class PrimerDesignWorkflow(object):
       self.print_fasta_solutions(out_fpath=out_fpath, top=30)
     else:
       self.print_solutions(out_fpath=out_fpath, top=30)
-    #try: 
-    #  import matplotlib
+    try: 
+      import matplotlib
       
-    #  self.validate()
-    #except ImportError:
-    #  pass
+      self.validate()
+    except ImportError:
+      pass
 
   def validate(self, savefig=None):
     from matplotlib import font_manager,pyplot as plt

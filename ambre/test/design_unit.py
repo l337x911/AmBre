@@ -35,7 +35,6 @@ class TestDesignWorkflow(unittest.TestCase):
                      multiplx=CONFIG.bin['multiplx'],
                      d=1000,rho=0.1)
     
-    
     ex_regions =  os.path.abspath(resource_filename('ambre', os.path.join('examples','regions.test')))
     if CONFIG.dir['examples'] is None:
       ex_temp =  os.path.abspath(resource_filename('ambre', os.path.join('examples','regions_ex', 'design_ex')))

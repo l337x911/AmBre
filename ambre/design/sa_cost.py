@@ -26,7 +26,8 @@ import cStringIO as StringIO
 from multiprocessing import Pool 
 from itertools import izip
 
-def multiplx_filter_func(values, stringency=(-4.0, -8.0, -8.0)):
+#def multiplx_filter_func(values, stringency=(-4.0, -8.0, -8.0)):
+def multiplx_filter_func(values, stringency=(-3.2, -8.0, -8.0)):
   s1, s2, s3 = float(values[0]), float(values[1]), float(values[2])
   return s1 < stringency[0] or s2 < stringency[1] or s3 < stringency[2]
 
@@ -147,8 +148,9 @@ class PrimerGraph(object):
     for i, (a, b) in enumerate(self.regions):
       mask = na.logical_and(self.combined_primers < b, self.combined_primers >= a)  
       self.primers_by_region.append(self.combined_primers[mask])
+      print >> sys.stdout, "#Region %d, %d-%d has %d primers"% (i,a,b,na.sum(mask))
       if na.sum(mask) == 0:
-        print >> sys.stderr, "Error Region %d-%d has no primers to choose from" % (a, b)
+        print >> sys.stderr, "Error Region %d, %d-%d has no primers to choose from" % (i, a, b)
         raise
     
     # Discard all primers that do not fall into the regions of interest
@@ -306,7 +308,7 @@ class PrimerGraph(object):
     iter_count, min_cost_age = 0, 0
     iter_clock = time.time()
     start_clock = time.time()
-    
+   
     if output_fpath is None:
       output_info = sys.stderr
     else:
@@ -454,7 +456,7 @@ class LinkMultiTargetPrimerGraph(PrimerGraph):
     #   else cost is dist to boundary
     #     if forward, to the region end or region start if reverse
     combined_primers = na.concatenate(sorted_primers_in_regions)
-    
+    raise NotImplementedError()
     if dimer_check_flag and self.check_primer_dimers(combined_primers): 
       return na.inf
   
@@ -487,10 +489,12 @@ def get_primer_graph(edges_fpath,
 
 def get_multitarget_primer_graph(edges_fpath,
                 regions_input, region_links=None):
-  if region_links is None or len(region_links)==0:
-    graph = BasicMultiTargetPrimerGraph(edges_fpath, regions_input)
-  else:
-    graph = LinkMultiTargetPrimerGraph(edges_fpath, regions_input, region_links)
+  # Not Implemented Yet
+  #if region_links is None or len(region_links)==0:
+  #  graph = BasicMultiTargetPrimerGraph(edges_fpath, regions_input)
+  #else:
+  #  graph = LinkMultiTargetPrimerGraph(edges_fpath, regions_input, region_links)
+  graph = BasicMultiTargetPrimerGraph(edges_fpath, regions_input)
 
   graph.load(multiplx_filter_func)
   return graph

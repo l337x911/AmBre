@@ -541,17 +541,17 @@ class PrimerDesignWorkflow(object):
     with open(pamp_out_fpath, 'rb') as pamp_out:  
       self.parse_pamp_output(pamp_out.read())
     if fasta_flag:
-      self.print_fasta_solutions(out_fpath=out_fpath, top=15)
+      self.print_fasta_solutions(out_fpath=out_fpath, top=30)
     else:
-      self.print_solutions(out_fpath=out_fpath, top=15)
-    try: 
-      import matplotlib
+      self.print_solutions(out_fpath=out_fpath, top=30)
+    #try: 
+    #  import matplotlib
       
-      self.validate()
-    except ImportError:
-      pass
+    #  self.validate()
+    #except ImportError:
+    #  pass
 
-  def validate(self):
+  def validate(self, savefig=None):
     from matplotlib import font_manager,pyplot as plt
     
     # Two figures
@@ -620,8 +620,11 @@ class PrimerDesignWorkflow(object):
       if i<num_solutions-1:
         ax_sln.xaxis.set_major_locator(plt.NullLocator())
         
-    ax_sln.set_xlabel('DNA positions covered')  
-    plt.show()
+    ax_sln.set_xlabel('DNA positions covered') 
+    if savefig is None:
+      plt.show()
+    else:
+      plt.savefig(savefig)
 
   
 def test_cross_amp(regions_fpath, temp_tag):
@@ -684,7 +687,8 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False, r
   w.run(regions_fpath,
         delete_flag=(CONFIG.param['cleanup_flag']=="True"),
         temp_tag=temp_tag,
-        pamp_off=True,
+        pamp_off=False,
+#        pamp_off=True,
         primers_per_kbp=int(CONFIG.param['design_primer3_primers_per_kbp']),
         max_primer_penalty=float(CONFIG.param['design_max_primer3_penalty']),
         max_cross_amp_dist=int(CONFIG.param['design_max_cross_amp_dist']),
@@ -695,15 +699,15 @@ def ambre_run(regions_fpath, temp_tag=None, out_fpath=None,  fasta_flag=False, r
         pamp_t_ms= map(float,CONFIG.param['design_sa_ms'].split(',')),
         pamp_t_bs=map(float,CONFIG.param['design_sa_bs'].split(',')),
         region_links_fpath=region_links_fpath)
-  #if fasta_flag:
-  #  w.print_fasta_solutions(out_fpath=out_fpath)
-  #else:
-  #  w.print_solutions(out_fpath=out_fpath)
-  #try:
-  #  import matplotlib
-  #  w.validate()
-  #except ImportError:
-  #  pass
+  if fasta_flag:
+    w.print_fasta_solutions(out_fpath=out_fpath)
+  else:
+    w.print_solutions(out_fpath=out_fpath)
+  try:
+    import matplotlib
+    w.validate(savefig=temp_tag+'.png')
+  except ImportError:
+    pass
   return w
 
 def main(): 

@@ -3,9 +3,10 @@ import sys
 import pandas as pd
 import numpy as na
 import bisect
+from itertools import count
 
-refseq_fpath = '/media/T01/data/hg/hg19/mrna-refseqali.txt'
-mrna_fasta_fpath = '/media/T01/data/hg/hg19/human2.rna.fna'
+refseq_fpath = '/media/T02/data/hg/hg19/mrna-refseqali.txt'
+mrna_fasta_fpath = '/media/T02/data/hg/hg19/human2.rna.fna'
 
 def has_qnames(df):
   # EGFR, PDGFRA, SEPT14, PTPRZ1, MET, FGFR3, TACC3, LANCL2, RP11-745C15.2
@@ -101,22 +102,38 @@ def get_closest_exon(refid,pos, start5=False):
  
   return idx+1, abs(v-pos), v, qv
 
-
-def ambredel_input(refid, end5, start3, w): 
+def ambredel_input(refid, end5, start3, w, r_count): 
   g = refseq[refseq.qName==refid]
   qstarts, qends, tstarts, tends, blocks = get_exons(refid)
 
   end5_idx = end5-2
   start3_idx = start3
   #print end5_idx, start3_idx, tends[end5_idx], tstarts[start3_idx]
-  print "#", g['tName'].values, g['qSize'].values, qends[end5_idx], qstarts[start3_idx], tends[end5_idx], tstarts[start3_idx], qstarts[start3_idx]-qends[end5_idx]
-  qs1, qw1 = max(qends[end5_idx]-w,0), min(w,qends[end5_idx])
+#  print "#{0:02d}".format(r_count), g['tName'].values, g['qSize'].values, qends[end5_idx], qstarts[start3_idx], tends[end5_idx], tstarts[start3_idx], qstarts[start3_idx]-qends[end5_idx]
+  
+  qs1, qw1 = 0, qends[end5_idx]
+  qs2, qw2 = qstarts[start3_idx], g['qSize']-qstarts[start3_idx]
+  if not w is None:
+    qs1 = max(qends[end5_idx]-w,0)
+    qw1 = qends[end5_idx]-qs1
+    qw2 = min(w,qw2)
+  else:
+    qs1 = qstarts[end5_idx]
+    qw1 = qends[end5_idx]-qstarts[end5_idx]
+    qw2 = qends[start3_idx]-qstarts[start3_idx]
+  
+#  print "#{0:02d}".format(r_count.next()), g['tName'].values, g['qSize'].values, qends[end5_idx], qstarts[start3_idx], tends[end5_idx], tstarts[start3_idx], qstarts[start3_idx]-qends[end5_idx]
+
+  print "#{0:02d}".format(r_count.next()), g['qName'].values, g['qSize'].values, qstarts[end5_idx], qends[end5_idx], tstarts[end5_idx], tends[end5_idx]
   print "%s\t%d\t%d\tforward"%(get_contig_name(refid), qs1,qw1)
-  print "%s\t%d\t%d\treverse"%(get_contig_name(refid), qstarts[start3_idx],min(w, g['qSize']-qstarts[start3_idx]))
+ # print "#{0:02d}".format(r_count.next()), g['tName'].values, g['qSize'].values, qends[end5_idx], qstarts[start3_idx], tends[end5_idx], tstarts[start3_idx], qstarts[start3_idx]-qends[end5_idx]
+  print "#{0:02d}".format(r_count.next()), g['qName'].values, g['qSize'].values, qstarts[start3_idx], qends[start3_idx], tstarts[start3_idx], tends[start3_idx]
+
+  print "%s\t%d\t%d\treverse"%(get_contig_name(refid), qs2,qw2)
 
 orient_dict = {True:"forward", False:"reverse"}
 
-def ambrefus_input(refid,exon_c, w, start5=False, rc_flag=False):
+def ambrefus_input(refid,exon_c, w, r_count, start5=False, rc_flag=False):
   g = refseq[refseq.qName==refid]
   qstarts, qends, tstarts, tends, blocks = get_exons(refid)
   #exon_c, diff, v, qv  = get_closest_exon(refid,pos,start5)
@@ -125,14 +142,21 @@ def ambrefus_input(refid,exon_c, w, start5=False, rc_flag=False):
   if start5:
     orient = "forward"
     qv = qends[idx]
-    pos = max(qv-w,0)
-    #pos = max(qv-w, qstarts[idx])
-    qw = min(w,qv)
+    if w is None:
+      pos = qstarts[idx]
+      qw = qv-pos
+    else:
+      pos = max(qv-w,0)
+      qw = min(w,qv)
   else:
     orient = "reverse"
     qv = qstarts[idx]
     pos = qv
-    qw = min(w,g['qSize']-qv)
+    qw = g['qSize']-qv
+    if not w is None:
+      qw = min(w,qw)
+    else:
+      qw = qends[idx]-pos
     #qw = min(w,qends[idx]+1- qv)
 
   orient = orient_dict[start5]
@@ -145,50 +169,64 @@ def ambrefus_input(refid,exon_c, w, start5=False, rc_flag=False):
     tv1,tv2 = tv2, tv1
 
   print "## %s\t%d\t%d\t%s_%d"%(g['tName'].values[0],tv1, tv2, g['qName'].values[0],exon_c)
-  print "#", g['qName'].values, g['qSize'].values, qstarts[idx], qends[idx], tstarts[idx], tends[idx]
+  print "#{0:02d}".format(r_count.next()), g['qName'].values, g['qSize'].values, qstarts[idx], qends[idx], tstarts[idx], tends[idx]
 
   print "%s\t%d\t%d\t%s"%(get_contig_name(refid), pos,qw, orient)
 
+def get_genomic_position(refid,pos, start5=False):
+  g = refseq[refseq.qName==refid]
+  exon_c, diff, v, qv  = get_closest_exon(refid,pos,start5)
+
 W = 200
+#W = None
+r_count = count()
 # EGFR, PDGFRA, SEPT14, PTPRZ1, MET, FGFR3, TACC3, LANCL2, RP11-745C15.2
 
 #print get_closest_exon("NM_005228", "chr7", 55268106, start5=True)
 #print get_closest_exon("NM_006206", "chr7", 55268106, start5=True)
 #EGFR vIII
 #print_exons('NM_005228', (2,7))
-ambredel_input('NM_005228', 2,7,W)
+ambredel_input('NM_005228', 2,7,W, r_count)
 #EGFR vII
 #print_exons('NM_005228', (14,15))
-ambredel_input('NM_005228', 14,15,W)
+ambredel_input('NM_005228', 14,15,W, r_count)
 #PDGFR
 #print_exons('NM_006206', (8,9))
-ambredel_input('NM_006206', 8,9,W)
+ambredel_input('NM_006206', 8,9,W, r_count)
 #EGFR exon 24
-ambrefus_input('NM_005228', 24,W, start5=True)
+ambrefus_input('NM_005228', 24,W, r_count, start5=True)
 #SEPT14 3 exon 3, 7, 10
-ambrefus_input("NM_207366", 3, W, start5=False)
-ambrefus_input("NM_207366", 7, W, start5=False)
-ambrefus_input("NM_207366", 10, W, start5=False)
+ambrefus_input("NM_207366", 3, W, r_count, start5=False)
+ambrefus_input("NM_207366", 7, W, r_count, start5=False)
+ambrefus_input("NM_207366", 10, W, r_count, start5=False)
 #print_exons("NM_207366")
 # PTPRZ1 exon 1, 2
 #print_exons("NM_002851")
-ambrefus_input("NM_002851", 1, W, start5=True)
-ambrefus_input("NM_002851", 2, W, start5=True)
+ambrefus_input("NM_002851", 1, W, r_count, start5=True)
+ambrefus_input("NM_002851", 2, W, r_count, start5=True)
 # MET exon 2 
 #print_exons("NM_001127500")
-ambrefus_input("NM_001127500", 2, W, start5=False)
+ambrefus_input("NM_001127500", 2, W, r_count, start5=False)
 # FGFR3 5 exon 17
-ambrefus_input("NM_000142", 17, W, start5=True)
+ambrefus_input("NM_000142", 17, W, r_count, start5=True)
 #print_exons("NM_000142")
 # TACC3 3 exon 8, 10, 11
 #print_exons("NM_006342")
-ambrefus_input("NM_006342", 8, W, start5=False)
-ambrefus_input("NM_006342", 10, W, start5=False)
-ambrefus_input("NM_006342", 11, W, start5=False)
+ambrefus_input("NM_006342", 8, W, r_count, start5=False)
+ambrefus_input("NM_006342", 10, W, r_count, start5=False)
+ambrefus_input("NM_006342", 11, W, r_count, start5=False)
 # LANCL2 5 exon 1, 6 
 #print_exons("NM_018697")
-ambrefus_input("NM_018697", 1, W, start5=True)
-ambrefus_input("NM_018697", 6, W, start5=True)
+ambrefus_input("NM_018697", 1, W, r_count, start5=True)
+ambrefus_input("NM_018697", 6, W, r_count, start5=True)
 # RP11-745C15.2
 #print_exons("NR_110040")
+
+exon_idx = 13
+qs,qe,ts,te,b = get_exons("NM_025137", print_flag=False)
+
+print qs[exon_idx],qe[exon_idx],ts[exon_idx],te[exon_idx]
+
+d = 2504-qs[exon_idx]
+print d, ts[exon_idx]-d
 

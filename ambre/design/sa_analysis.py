@@ -69,7 +69,7 @@ class SAStats(object):
     self.curr_cost = na.zeros(len(stats_objects[0].curr_cost))
     
     for stat_obj in stats_objects:
-      assert not ((stat_obj.iterations - self.iterations) > 0).any()
+      #assert not ((stat_obj.iterations - self.iterations) > 0).any()
       self.min_cost += stat_obj.min_cost
       self.curr_cost += stat_obj.curr_cost
       self.avg_runtime_per_iter += stat_obj.avg_runtime_per_iter

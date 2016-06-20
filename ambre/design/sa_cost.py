@@ -517,18 +517,22 @@ def multi_vary_temperature_schedule(graph=None,
           schedule = TemperatureScheduleLinear(m=t_m, b=t_b)
           max_iter = min(max_iterations, 2*t_b+abs(int(round(t_b/t_m))))
           max_iter = max(max_iter, 1000000)
-          time.sleep(2)
+          #time.sleep(2)
           if output is None:
-            r = p.apply_async(run_simulated_annealing, (graph, schedule, max_iter, max_age))
+            #r = p.apply_async(run_simulated_annealing, (graph, schedule, max_iter, max_age))
+            r = run_simulated_annealing(graph, schedule, max_iter, max_age)
           else:
-            r = p.apply_async(run_simulated_annealing, (graph, schedule, max_iter, max_age, "%s.%03d.%02d.%02d" % (output.name, int(na.log10(-1 * schedule.m)), int(na.log10(schedule.b)), i)))
+            #r = p.apply_async(run_simulated_annealing, (graph, schedule, max_iter, max_age, "%s.%03d.%02d.%02d" % (output.name, int(na.log10(-1 * schedule.m)), int(na.log10(schedule.b)), i)))
+            r = run_simulated_annealing(graph, schedule, max_iter, max_age, "%s.%03d.%02d.%02d" % (output.name, int(na.log10(-1 * schedule.m)), int(na.log10(schedule.b)), i))
+
           results.append((schedule, i, r))
   
   if output is None:
     output = sys.stdout
   
   for schedule, i, result in results:
-    cost, primer_sets, iter_count, runtime = result.get()
+    #cost, primer_sets, iter_count, runtime = result.get()
+    cost, primer_sets, iter_count, runtime = result
     print >> output, "%03d,%02d,%02d\t%08d\t%.2f\t%s" % (int(na.log10(-1 * schedule.m)), int(na.log10(schedule.b)), i, cost, runtime,
                     ":".join([",".join(['%d' % s for s in na.sort(list(primer_sets[r_idx]))]) for r_idx in range(len(primer_sets))]))    
   if output is None:

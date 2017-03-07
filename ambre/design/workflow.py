@@ -182,7 +182,10 @@ class PrimerDesignWorkflow(object):
     
     alignments.sort()
     
-    pos, contigs, orient, primer_pos = zip(*alignments)
+    try:
+      pos, contigs, orient, primer_pos = zip(*alignments)
+    except ValueError:
+      pos, contigs, orient, primer_pos = [], [], [], []
     
     n = len(alignments)
     fwd = na.zeros(n, dtype=na.int)
